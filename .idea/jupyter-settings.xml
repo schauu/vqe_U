@@ -5,11 +5,11 @@
       <list>
         <JupyterConnectionParameters>
           <option name="authType" value="notebook" />
-          <option name="token" value="" />
+          <option name="token" value="deac3ae3c2ca48b22f4f4d46d0f143a3d2e9a073eacccb7c" />
           <option name="urlString" value="http://localhost:8888/" />
           <authParams2>
             <map>
-              <entry key="token" value="" />
+              <entry key="token" value="deac3ae3c2ca48b22f4f4d46d0f143a3d2e9a073eacccb7c" />
             </map>
           </authParams2>
         </JupyterConnectionParameters>
@@ -30,8 +30,14 @@
         <entry key="$PROJECT_DIR$/.idea/vqe_U.iml">
           <value>
             <JupyterConnectionParameters>
-              <option name="managed" value="true" />
-              <option name="sdkName" value="C:\Users\schauue\Anaconda3" />
+              <option name="authType" value="notebook" />
+              <option name="token" value="deac3ae3c2ca48b22f4f4d46d0f143a3d2e9a073eacccb7c" />
+              <option name="urlString" value="http://localhost:8888/" />
+              <authParams2>
+                <map>
+                  <entry key="token" value="deac3ae3c2ca48b22f4f4d46d0f143a3d2e9a073eacccb7c" />
+                </map>
+              </authParams2>
             </JupyterConnectionParameters>
           </value>
         </entry>
