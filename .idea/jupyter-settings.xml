@@ -5,21 +5,21 @@
       <list>
         <JupyterConnectionParameters>
           <option name="authType" value="notebook" />
-          <option name="token" value="deac3ae3c2ca48b22f4f4d46d0f143a3d2e9a073eacccb7c" />
+          <option name="token" value="http://localhost:8891/tree?token=27e7ac97c857ea7c0667240de56d4cbeba87da2e9c06cd7e" />
           <option name="urlString" value="http://localhost:8888/" />
           <authParams2>
             <map>
-              <entry key="token" value="deac3ae3c2ca48b22f4f4d46d0f143a3d2e9a073eacccb7c" />
+              <entry key="token" value="http://localhost:8891/tree?token=27e7ac97c857ea7c0667240de56d4cbeba87da2e9c06cd7e" />
             </map>
           </authParams2>
         </JupyterConnectionParameters>
         <JupyterConnectionParameters>
           <option name="authType" value="notebook" />
-          <option name="token" value="9b2de2f548c748170513668e6bf5a5f321880e37bc51f2ee" />
+          <option name="token" value="c6148b34e975590fbb91d2da44c8d89e7a098d92e95fbfcb" />
           <option name="urlString" value="http://localhost:8891/" />
           <authParams2>
             <map>
-              <entry key="token" value="9b2de2f548c748170513668e6bf5a5f321880e37bc51f2ee" />
+              <entry key="token" value="c6148b34e975590fbb91d2da44c8d89e7a098d92e95fbfcb" />
             </map>
           </authParams2>
         </JupyterConnectionParameters>
@@ -31,11 +31,11 @@
           <value>
             <JupyterConnectionParameters>
               <option name="authType" value="notebook" />
-              <option name="token" value="deac3ae3c2ca48b22f4f4d46d0f143a3d2e9a073eacccb7c" />
-              <option name="urlString" value="http://localhost:8888/" />
+              <option name="token" value="c6148b34e975590fbb91d2da44c8d89e7a098d92e95fbfcb" />
+              <option name="urlString" value="http://localhost:8891/" />
               <authParams2>
                 <map>
-                  <entry key="token" value="deac3ae3c2ca48b22f4f4d46d0f143a3d2e9a073eacccb7c" />
+                  <entry key="token" value="c6148b34e975590fbb91d2da44c8d89e7a098d92e95fbfcb" />
                 </map>
               </authParams2>
             </JupyterConnectionParameters>
