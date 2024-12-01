@@ -1,331 +1,314 @@
 #!/usr/bin/env python3
 import numpy as np
+import scipy
 from qiskit import QuantumCircuit, transpile
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info import SparsePauliOp, Statevector, state_fidelity, Operator
+from qiskit.synthesis import SuzukiTrotter, LieTrotter
 from qiskit_aer import AerSimulator
+from qiskit_algorithms import TimeEvolutionProblem, TrotterQRTE
 from qiskit_aer.noise import NoiseModel, depolarizing_error
-from scipy.optimize import minimize
+from qiskit.primitives import Estimator
+from qiskit.circuit.library import PauliEvolutionGate
 import matplotlib.pyplot as plt
 from scipy.linalg import expm, cosm
 import warnings
 import sys
+import functools
+import scipy as sc
+from qiskit.visualization import plot_histogram
 
-# !/usr/bin/env python3
-import numpy as np
-from qiskit import QuantumCircuit, transpile
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info import SparsePauliOp, Statevector, state_fidelity, Operator
-from qiskit_aer import AerSimulator
-from qiskit_aer.noise import NoiseModel, depolarizing_error
-from scipy.optimize import minimize
-import matplotlib.pyplot as plt
-from scipy.linalg import expm, cosm
-import warnings
-import sys
 
 
 # warnings.simplefilter("ignore", np.ComplexWarning)
 # np.set_printoptions(linewidth=100)
 
-## Pure VQE
-class VQE_Runner:
-    def __init__(self, nqubits, error_rate, depth, periodic, parameter):
-        self.nqubits = nqubits
-        self.error_rate = error_rate
-        self.depth = depth
-        self.periodic = periodic
-        self.parameter = parameter
+def get_hamiltonian(nqubits):
+    J = 1 / np.sqrt(2)
+    ZZ_tuples = [('ZZ', [i, i + 1], J) for i in range(nqubits - 1)]
+    ZZ_tuples += [('ZZ', [nqubits - 1, 0], J)]
+    X_tuples = [("X", [i], J) for i in range(nqubits)]
+    hamiltonian = SparsePauliOp.from_sparse_list([*ZZ_tuples, *X_tuples], num_qubits=nqubits)
+    return hamiltonian.simplify()
 
-    def make_heis1(self):
-        ops = []
-        coeffs = []
-        if self.periodic == True:
-            for i in range(self.nqubits):
-                if i < (self.nqubits - 1):
-                    j = i + 1
-                else:
-                    j = 0
-                zs = ["I"] * self.nqubits
-                zs[i] = "Z"
-                zs[j] = "Z"
-                Zop = "".join(zs)
-                ops.append(Zop)
-                coeffs.append(1 / np.sqrt(2))
 
-                xs = ["I"] * self.nqubits
-                xs[i] = "X"
-                Xop = "".join(xs)
-                ops.append(Xop)
-                coeffs.append(1 / np.sqrt(2))
+def ansatz_hamiltonian(nqubits, depth, params):
+    circuit = QuantumCircuit(nqubits)
+    t = 0
+    for i in range(nqubits):
+        circuit.h(i)
+    for idepth in range(depth):
+        for i in range(nqubits):
+            if i < (nqubits - 1):
+                j = i + 1
+            else:
+                j = 0
+            circuit.rzz(params[t], i, j)
+            t += 1
+        circuit.barrier()
+        for i in range(nqubits):
+            if i < (nqubits - 1):
+                j = i + 1
+            else:
+                j = 0
+            circuit.rx(params[t], i)
+            t += 1
+    return circuit
 
-        else:
-            for i in range(self.nqubits - 1):
-                zs = ["I"] * self.nqubits
-                zs[i] = "Z"
-                zs[i + 1] = "Z"
-                Zop = "".join(zs)
-                ops.append(Zop)
-                coeffs.append(1.0 / np.sqrt(2))
 
-                xs = ["I"] * self.nqubits
-                xs[i] = "X"
-                Xop = "".join(xs)
-                ops.append(Xop)
-                coeffs.append(1.0 / np.sqrt(2))
+def ansatz_hea(nqubits, depth, params):
+    circuit = QuantumCircuit(nqubits)
+    t = 0
+    for idepth in range(depth):
+        for i in range(nqubits):
+            circuit.ry(params[t], i)
+            t += 1
+        circuit.barrier()
+        for i in range(nqubits - 1):
+            circuit.cx(i, i + 1)
+    return circuit
 
-        return SparsePauliOp(ops, coeffs)
 
-    def get_eigenvalues(self):
-        hamiltonian = self.make_heis1()
-        eigenvalues = (np.linalg.eigvals(hamiltonian.to_matrix())).real.tolist()
-        eigenvalues.sort()
-        E_max = eigenvalues[-1]
-        E_min = eigenvalues[0]
-        return E_max, E_min
+def cost_function1(params, nqubits, depth, error_rate):
+    hamiltonian = get_hamiltonian(nqubits)
+    circuit = ansatz_hamiltonian(nqubits, depth, params)
+    circuit = circuit.decompose()
+    noise_model = NoiseModel()
+    error = depolarizing_error(error_rate, 1)
+    noise_model.add_all_qubit_quantum_error(error, ['u1', 'u2', 'u3'])
+    error1 = depolarizing_error(error_rate * 10, 2)
+    noise_model.add_all_qubit_quantum_error(error1, 'cx')
+    sim_d = AerSimulator(noise_model=noise_model)
+    circuit.save_statevector()
+    if error_rate == 0:
+        simulator = AerSimulator()
+    else:
+        simulator = sim_d
+        circuit = transpile(circuit, sim_d)
+        # noise_result = sim_d.run(circ_noise, shots=1).result()
+    result = simulator.run(circuit).result()
+    u = result.data(0)['statevector'].data
+    expectation = (u.conj().dot(hamiltonian.to_matrix())).dot(u)
+    return expectation.real
 
-    def ansatz_hamiltonian1(self, params):
-        circuit = QuantumCircuit(self.nqubits)
-        t = 0
-        for i in range(self.nqubits):
-            circuit.h(i)
-        for idepth in range(self.depth):
-            for i in range(self.nqubits):
-                if i < (self.nqubits - 1):
-                    j = i + 1
-                else:
-                    j = 0
-                circuit.rzz(params[t], i, j)
-                t += 1
-            circuit.barrier()
-            for i in range(self.nqubits):
-                if i < (self.nqubits - 1):
-                    j = i + 1
-                else:
-                    j = 0
-                circuit.rx(params[t], i)
-                t += 1
-        return circuit
 
-    def ansatz_hea(self, params):
-        circuit = QuantumCircuit(self.nqubits)
-        t = 0
-        for idepth in range(self.depth):
-            for i in range(self.nqubits):
-                circuit.ry(params[t], i)
-                t += 1
-            circuit.barrier()
-            for i in range(self.nqubits - 1):
-                circuit.cx(i, i + 1)
-        return circuit
+def cost_function2(params, nqubits, depth, error_rate):
+    hamiltonian = get_hamiltonian(nqubits)
+    circuit = ansatz_hea(nqubits, depth, params)
+    circuit = circuit.decompose()
+    noise_model = NoiseModel()
+    error = depolarizing_error(error_rate, 1)
+    noise_model.add_all_qubit_quantum_error(error, ['u1', 'u2', 'u3'])
+    error1 = depolarizing_error(error_rate * 10, 2)
+    noise_model.add_all_qubit_quantum_error(error1, ['cx'])
+    sim_d = AerSimulator(noise_model=noise_model)
+    circuit.save_statevector()
+    if error_rate == 0:
+        simulator = AerSimulator()
+    else:
+        simulator = sim_d
+        circuit = transpile(circuit, sim_d)
+        # noise_result = sim_d.run(circ_noise, shots=1).result()
+    result = simulator.run(circuit).result()
+    u = result.data(0)['statevector'].data
+    expectation = (u.conj().dot(hamiltonian.to_matrix())).dot(u)
+    return expectation.real
 
-    def cost_function1(self, params):
-        hamiltonian = self.make_heis1()
-        circuit = self.ansatz_hamiltonian1(params)
-        circuit = circuit.decompose()
-        noise_model = NoiseModel()
-        error = depolarizing_error(self.error_rate, 1)
-        noise_model.add_all_qubit_quantum_error(error, ['u1', 'u2', 'u3'])
-        error1 = depolarizing_error(self.error_rate * 10, 2)
-        noise_model.add_all_qubit_quantum_error(error1, 'cx')
-        sim_d = AerSimulator(noise_model=noise_model)
-        circuit.save_statevector()
-        circ_noise = transpile(circuit, sim_d)
-        noise_result = sim_d.run(circ_noise, shots=1).result()
-        u = noise_result.data(0)['statevector'].data
-        expectation = (u.conj().dot(hamiltonian.to_matrix())).dot(u)
-        return expectation.real
 
-    def cost_function2(self, params):
-        hamiltonian = self.make_heis1()
-        circuit = self.ansatz_hea(params)
-        circuit = circuit.decompose()
-        noise_model = NoiseModel()
-        error = depolarizing_error(self.error_rate, 1)
-        noise_model.add_all_qubit_quantum_error(error, ['u1', 'u2', 'u3'])
-        error1 = depolarizing_error(self.error_rate * 10, 2)
-        noise_model.add_all_qubit_quantum_error(error1, 'cx')
-        sim_d = AerSimulator(noise_model=noise_model)
-        circuit.save_statevector()
-        circ_noise = transpile(circuit, sim_d)
-        noise_result = sim_d.run(circ_noise, shots=1).result()
-        u = noise_result.data(0)['statevector'].data
-        expectation = (u.conj().dot(hamiltonian.to_matrix())).dot(u)
-        return expectation.real
+def callback1(intermediate_result):
+    # print(
+    #    f"{intermediate_result.fun}"
+    #    )
+    with open('intermediate_values_hva.txt', 'a') as file:
+        file.write(f'Intermediate values: {intermediate_result.fun}\n')
 
-    def callback1(self, intermediate_result):
-        # print(
-        #    f"{intermediate_result.fun}"
-        #    )
-        with open('intermediate_values_hva.txt', 'a') as file:
-            file.write(f'Intermediate values: {intermediate_result.fun}\n')
 
-    def callback2(self, intermediate_result):
-        # print(
-        #    f"{intermediate_result.fun}"
-        #    )
-        with open('intermediate_values_hea.txt', 'a') as file:
-            file.write(f'Intermediate values: {intermediate_result.fun}\n')
-
-    def vqe(self):
-        estimate_val = minimize(self.cost_function1, self.parameter, method="BFGS", tol=1e-5, options={'disp': False},
-                                callback=self.callback1)
-        return estimate_val
-
-    def vqe2(self):
-        estimate_val = minimize(self.cost_function2, self.parameter, method="BFGS", tol=1e-5, options={'disp': False},
-                                callback=self.callback2)
-        return estimate_val
+def callback2(intermediate_result):
+    # print(
+    #    f"{intermediate_result.fun}"
+    #    )
+    with open('intermediate_values_hea.txt', 'a') as file:
+        file.write(f'Intermediate values: {intermediate_result.fun}\n')
 
 
 ## pure Cousine filtering
-class CosineRunner:
-    def __init__(self, nqubits, error_rate, time_step, periodic):
-        self.nqubits = nqubits
-        self.error_rate = error_rate
-        self.time_step = time_step
-        self.periodic = periodic
+## 1st order
+def construct_trotter_circuit(H, time, nqubits, order, time_step):
+    if order == 1:
+        formular = LieTrotter(reps=time_step)
+    else:
+        formular = SuzukiTrotter(order=order, reps=time_step)
+    trotter_step_first_order = PauliEvolutionGate(H, time, synthesis=formular)
+    circuit = QuantumCircuit(nqubits+1)
+    circuit.append(trotter_step_first_order, range(nqubits+1))
+    #circuit = circuit.decompose(reps=2)
+    return circuit
 
-    def make_heis1(self):
-        ops = []
-        coeffs = []
-        if self.periodic == True:
-            for i in range(self.nqubits):
-                if i < (self.nqubits - 1):
-                    j = i + 1
-                else:
-                    j = 0
-                zs = ["I"] * self.nqubits
-                zs[i] = "Z"
-                zs[j] = "Z"
-                Zop = "".join(zs)
-                ops.append(Zop)
-                coeffs.append(1 / np.sqrt(2))
+def select_sim(error_rate):
+    noise_model = NoiseModel()
+    error = depolarizing_error(error_rate, 1)
+    noise_model.add_all_qubit_quantum_error(error, ['u1', 'u2', 'u3'])
+    error1 = depolarizing_error(error_rate*10, 2)
+    noise_model.add_all_qubit_quantum_error(error1,'cx')
+    sim_d = AerSimulator(noise_model=noise_model)
+    if error_rate==0:
+        simulator = AerSimulator()
+    else:
+        simulator = sim_d
+    return simulator
 
-                xs = ["I"] * self.nqubits
-                xs[i] = "X"
-                # xs[i + 1] = "X"
-                Xop = "".join(xs)
-                ops.append(Xop)
-                coeffs.append(1 / np.sqrt(2))
+def unitary_exact(time, nqubits, error_rate, step):
+    projector = np.array([[0, -1.0j],
+                     [1.0j, 0]])
+    J = 1/np.sqrt(2)
+    hamiltonian = get_hamiltonian(nqubits)
+    H_array = hamiltonian.to_matrix()
+    eval, _ = np.linalg.eigh(H_array)
+# print(eval)
+    emin = eval[0]
+    emax = eval[-1]
+    H_array = (H_array - emin * np.eye(2**nqubits)) / (emax - emin)
+    initial_state = Statevector.from_label("0"*nqubits)
+    expectation_exact = []
+    simulator = select_sim(error_rate)
+    statevector = initial_state.data
+    projector2 = np.array([[1, 0],
+                           [0, 0]])  ## for expectation
+    hamiltonian1 = np.kron(projector2, get_hamiltonian(4).to_matrix())
+    hamiltonian1 = Operator(hamiltonian1)
+    hamiltonian1 = SparsePauliOp.from_operator(hamiltonian1)
+    hamiltonian2 = np.kron(projector2, np.eye(2 ** nqubits))
+    for i in range(step):
+        U = expm(-1.0j * time * np.kron(projector, H_array))
+        qc = QuantumCircuit(nqubits+1)
+        qc.initialize(statevector, range(nqubits))
+        qc.unitary(U, range(nqubits+1))
+        qc.decompose(reps=2)
+        qc.save_statevector()
+        result = simulator.run(qc).result().data(0)['statevector']
+        new_state = result.data#[:2**nqubits]
+        expectation = (new_state.conj().dot(hamiltonian1.to_matrix())).dot(new_state)/(new_state.conj().T.dot(hamiltonian2).dot(new_state))
+        expectation_exact.append(expectation)
+        statevector = new_state[:2**nqubits]/np.linalg.norm(new_state[:2**nqubits])
+    return expectation_exact
 
-        else:
-            for i in range(self.nqubits - 1):
-                zs = ["I"] * self.nqubits
-                zs[i] = "Z"
-                zs[i + 1] = "Z"
-                Zop = "".join(zs)
-                ops.append(Zop)
-                coeffs.append(1.0 / np.sqrt(2))
+def unitary_trotter(H, time, nqubits, order, time_step, error_rate, step):
+    simulator = select_sim(error_rate)
+    expectation_list = []
+    initial_state = Statevector.from_label("0" * nqubits)
+    statevector = initial_state.data
+    # H = get_hamiltonian_y(5, 1/np.sqrt(2), True)
+    projector = np.array([[0, -1.0j],
+                          [1.0j, 0]])
 
-                xs = ["I"] * self.nqubits
-                xs[i] = "X"
-                Xop = "".join(xs)
-                ops.append(Xop)
-                coeffs.append(1.0 / np.sqrt(2))
-
-        return SparsePauliOp(ops, coeffs)
-
-    def depolarizing_channel(self, erate, density_matrix):
-        E = (1 - erate) * density_matrix + erate * np.trace(density_matrix) * np.eye(
-            2 ** self.nqubits) / 2 ** self.nqubits
-        return E
-
-    def get_eigenvalues(self):
-        hamiltonian = self.make_heis1()
-        eigenvalues = (np.linalg.eigvals(hamiltonian.to_matrix())).real.tolist()
-        eigenvalues.sort()
-        E_max = eigenvalues[-1]
-        E_min = eigenvalues[0]
-        return E_max, E_min
-
-    def cosine_filtering(self, erate):
-        hamiltonian = self.make_heis1()
-        E_max, E_min = self.get_eigenvalues()
-        # print(f'Ground state energy is {E_min}')
-        hamiltonian_norm = hamiltonian.to_matrix() / E_max
-        hamiltonian_matrix = hamiltonian_norm + 0.5 * self.nqubits * np.eye(2 ** self.nqubits)
-
-        eigenvalues1 = np.linalg.eigvals(hamiltonian_matrix).real.tolist()
-        eigenvalues1.sort()
-        E_max = eigenvalues1[-1]
-        dt = round(((np.pi / 2) / E_max), 1)
-        circuit_temp = QuantumCircuit(self.nqubits)
-        for i in range(self.nqubits):
-            circuit_temp.ry(np.pi / 4, i)
-        circuit_temp.save_statevector()
-        simulator_temp = AerSimulator()
-        circuit_temp_trans = transpile(circuit_temp, simulator_temp)
-        v = simulator_temp.run(circuit_temp_trans).result().get_statevector()
-        v = np.asarray(v)
-        phi = np.outer(v, v.conj())
-        U_cos = cosm(hamiltonian_matrix * dt)
-
-        for i in range(self.time_step):
-            phi = (U_cos.dot(phi)).dot(U_cos.conj())
-            depolarizing = self.depolarizing_channel(erate, phi)
-            phi = depolarizing
-            phi = phi / np.trace(phi)
-        expectation = np.trace(phi.dot(hamiltonian.to_matrix()))
-        return expectation
-
-    def cosine(self):
-        energy_difference_list = []
-        ground_state = self.get_eigenvalues()[1]
-        for error in self.error_rate:
-            expectation = self.cosine_filtering(erate=error)
-            energy_difference = (expectation - ground_state) / np.abs(ground_state)
-            energy_difference_list.append(energy_difference)
-
-        plt.xticks(self.error_rate[:5], fontsize=5)
-        plt.scatter(self.error_rate[:5], energy_difference_list[:5])
-        plt.xscale('log')
-        # Add any additional plotting code here
-        noiseless = (energy_difference_list[5]) / np.abs(ground_state)
-        plt.axhline(noiseless, 0, 1, color='r', linestyle='--', label='Noiseless')
-        plt.legend()
-        plt.gca().set_yticklabels([f'{x:.0%}' for x in plt.gca().get_yticks()])
-        plt.xlabel("error rate")
-        plt.ylabel("Energy difference")
-        plt.title(f'Unitary on {self.nqubits} qubits ZZ+X')
-        plt.savefig(f'{self.nqubits}_cosine.png', dpi=300)
-        plt.show()
-
-        return energy_difference_list
-
+    projector2 = np.array([[1, 0],
+                           [0, 0]])  ## for expectation
+    hamiltonian1 = np.kron(projector2, get_hamiltonian(4).to_matrix())
+    hamiltonian1 = Operator(hamiltonian1)
+    hamiltonian1 = SparsePauliOp.from_operator(hamiltonian1)
+    hamiltonian2 = np.kron(projector2, np.eye(2 ** nqubits))
+    for i in range(step):
+        qc = QuantumCircuit(nqubits+1)
+        qc.initialize(statevector, range(nqubits))
+        circuit_temp = construct_trotter_circuit(H, time, nqubits, order, time_step)
+        qc = qc.compose(circuit_temp, range(nqubits+1))
+        #qc = qc.decompose(reps=2)
+        qc.save_statevector()
+        circuit = transpile(qc, simulator)
+        result = simulator.run(circuit).result().data(0)['statevector']
+        new_state = result.data#[:2**nqubits]
+        # Print the statevector at each step for debugging
+        #print(f"Step {i}: Statevector = {statevector}")
+        expectation = (new_state.conj().T.dot(hamiltonian1.to_matrix())).dot(new_state)/(new_state.conj().T.dot(hamiltonian2).dot(new_state))
+        expectation_list.append(expectation)
+        # Print the expectation value at each step for debugging
+        #print(f"Step {i}: Expectation = {expectation}")
+        statevector = new_state[:2**nqubits]/np.linalg.norm(new_state[:2**nqubits])
+    return expectation_list
 
 ### Experiments
 def main():
-    error_rate = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 0]
-    time_step = 200
+    np.random.seed(42)
     if sys.argv[1] == "cosine":
+        error_rate = int(sys.argv[3])
         nqubits = int(sys.argv[2])
-        runner = CosineRunner(nqubits=nqubits,
-                              error_rate=error_rate,
-                              time_step=time_step,
-                              periodic=True)
-        result = runner.cosine()
+        J = 1 / np.sqrt(2)
+        hamiltonian = get_hamiltonian(nqubits)
+        H_array = hamiltonian.to_matrix()
+        eval, _ = np.linalg.eigh(H_array)
+        emin = eval[0]
+        emax = eval[-1]
+        H_array = (H_array - emin * np.eye(2 ** nqubits)) / (emax - emin)  ## scale H
+        final_time = np.pi / 2  # time
+        time = final_time
+        time_step = 3  # time_step
+        projector = np.array([[0, -1.0j],
+                              [1.0j, 0]])
+        H = Operator(np.kron(projector, H_array))
+        H = SparsePauliOp.from_operator(H)
+
+
+        step = 40
+        order = 1
+        expectation_1 = unitary_trotter(H, time, nqubits, order, time_step, error_rate, step)
+        order = 2
+        expectation_2 = unitary_trotter(H, time, nqubits, order, time_step, error_rate, step)
+        order = 4
+        expectation_4 = unitary_trotter(H, time, nqubits, order, time_step, error_rate, step)
+
+        expectation_exact = unitary_exact(time, nqubits, error_rate, step)
+
+        fig, axes = plt.subplots()
+        x = list(range(1, step + 1))  # includes initial state
+        axes.plot(
+            x, expectation_1, label="First order", marker="x", c="darkmagenta", ls="-", lw=0.8
+        )
+        axes.plot(
+            x, expectation_2, label="Second order", marker="o", c="limegreen", ls="-", lw=0.8
+        )
+        axes.plot(
+            x, expectation_4, label="Fourth order", marker="v", c="r", ls="-", lw=0.8
+        )
+        axes.plot(x, expectation_exact, c="k", ls=":", label="Exact matrix exponential")
+        horizontal_line_value = emin
+        axes.axhline(y=horizontal_line_value, color='r', linestyle='--',
+                     label='minimum eigenvalue')  # f'y = {horizontal_line_value}')
+        legend = fig.legend(
+            *axes.get_legend_handles_labels(),
+            bbox_to_anchor=(1.0, 0.5),
+            loc="center left",
+            framealpha=0.5,
+        )
+
+        axes.set_xticks(np.arange(0, max(x) + 1, 5))
+        axes.set_xlabel('Step')
+        axes.set_ylabel('Energy')
+        axes.set_title('Trotter step is 3')
+        fig.tight_layout()
+        fig.savefig("trotter_step3.png", dpi=300)
+
         # print(result)
     elif sys.argv[1] == "vqe":
+        error_rate = 0
         nqubits = int(sys.argv[2])
         depth = int(sys.argv[3])
-        vqe_0 = VQE_Runner(nqubits=nqubits,
-                           error_rate=0,
-                           depth=depth,
-                           periodic=True,
-                           parameter=np.pi * np.random.random(2 * nqubits * depth))
-        # vqe_0.ansatz_hamiltonian1(params=ParameterVector("a", length=8)).draw('mpl')
-        vqe_hva = vqe_0.vqe()
-        vqe_hea = vqe_0.vqe2()
-        vqe_exact = vqe_0.get_eigenvalues()[1]
+        parameter = np.array(np.random.random(2 * nqubits * depth))
+        circuit = ansatz_hamiltonian(nqubits, depth, parameter)
+        circuit = circuit.decompose(reps=2)
+        count = []
+        count.append(circuit.depth())  # depth, total gate, nonlocal gates
+        count.append(len(circuit))
+        count.append(circuit.num_nonlocal_gates())
+        print(count)
+        estimate_val_hva = minimize(cost_function1, parameter, args=(nqubits, depth, error_rate), method="BFGS",
+                                    tol=1e-5, options={'disp': False}, callback=callback1)
+        estimate_val_hea = minimize(cost_function2, parameter, args=(nqubits, depth, error_rate), method="BFGS",
+                                    tol=1e-5, options={'disp': False}, callback=callback2)
         # print(vqe_exact)
         # Store the final result
         with open('final_result.txt', 'w') as file:
-            file.write(f'Exact values: {vqe_exact}\n')
-            file.write(f'Final result HVA: {vqe_hva}\n')
-            file.write(f'Final result HEA: {vqe_hea}\n')
+            #file.write(f'Exact values: {vqe_exact}\n')
+            file.write(f'Final result HVA: {estimate_val_hva}\n')
+            file.write(f'Final result HEA: {estimate_val_hea}\n')
 
 
 if __name__ == "__main__":
