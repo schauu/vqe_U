@@ -16,7 +16,7 @@ import sys
 import functools
 import scipy as sc
 from qiskit.visualization import plot_histogram
-
+from scipy.optimize import minimize
 
 
 # warnings.simplefilter("ignore", np.ComplexWarning)
