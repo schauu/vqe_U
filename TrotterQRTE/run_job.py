@@ -16,28 +16,29 @@ def JSFA(*args):
     return JSF(*args, timedelta(days=3), "special_mne_alicehu")
 
 
-JS_QISKIT = JSFA(1, 1, 16)
+JS_QISKIT = JSFA(1, 1, 64)
 
 
 def main():
     with JobBuilder(RA) as jobs:
-        erates = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 0]
-        nqubits = [4, 6, 8, 10]
-        depth = [1, 2, 3, 4, 5]
+        erates = [1e-3, 1e-4, 1e-5, 0]
+        #nqubits = [4, 6, 8]
+        nqubits = [10]
+        depths = [1, 2, 3, 4, 5]
         os.system("rm slurm-*.out")
         for nqubit in nqubits:
-            for depth in depth:
-                path = Path(f"./{nqubit}/{depth}")
+            for depth in depths:
+                path = Path(f"./{nqubit}_qubits/depth_{depth}")
                 path.mkdir(parents=True, exist_ok=True)
-                command = [f"../run.py vqe {nqubit} {depth} &> vqe.{nqubit}.out"]
-                jobs.add_job(JS_QISKIT([], None, command).write(path / f'queue_vqe_{nqubit}.sh'))
+                command = [f"../../run.py vqe {nqubit} {depth} &> vqe.{nqubit}_qubits.depth_{depth}.out"]
+                jobs.add_job(JS_QISKIT([], None, command).write(path / f'queue_vqe_{nqubit}_qubits_depth_{depth}.sh'))
             # command = "echo $SLURM_JOB_ID"
             # jobs.add_job(JS_QISKIT([], None, command).write(path / f'queue.sh'))
             for erate in erates:
-                path = Path(f"./{nqubit}/{erate}")
+                path = Path(f"./{nqubit}_qubits/erate_{erate}")
                 path.mkdir(parents=True, exist_ok=True)
-                command = [f"../run.py cosine {nqubit} {erate}&> cosine.{nqubit}.out"]
-                jobs.add_job(JS_QISKIT([], None, command).write(path / f'queue_cosine_{nqubit}.sh'))
+                command = [f"../../run.py cosine {nqubit} {erate}&> cosine.{nqubit}_qubits.erate_{erate}.out"]
+                jobs.add_job(JS_QISKIT([], None, command).write(path / f'queue_cosine_{nqubit}_qubits_erate_{erate}.sh'))
                 
 
 
