@@ -1,3 +1,3 @@
-## 28/11/2024
+## 6/12/2024
 vqe for more qubits
-cosine for more qubits
+cosine for more qubits in Burgundy server
