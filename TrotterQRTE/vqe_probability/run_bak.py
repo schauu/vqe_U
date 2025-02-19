@@ -209,11 +209,8 @@ def cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, step):
     H_matrix = H.to_matrix()
 
     vqe_depth = 3
-    #vqe_nparams = vqe_depth * (2 * nqubits + 1)
-    #vqe_nparams = vqe_depth * (2 * (nqubits + 1))
-    vqe_nparams = vqe_depth * (nqubits+1)
+    vqe_nparams = vqe_depth * (2 * nqubits + 1)
     vqe_params = ParameterVector("θ", vqe_nparams)
-    #parameter = np.random.random(vqe_nparams)
 
     for i in range(step):
         print(f"Running {i}", flush=True)
@@ -232,25 +229,22 @@ def cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, step):
         postselect_state = new_state[: 2**nqubits]
         probability = np.linalg.norm(postselect_state)
         postselect_state /= probability
-        expectation = postselect_state.conj().T.dot(H_matrix.dot(postselect_state)) ##参考
+        expectation = postselect_state.conj().T.dot(H_matrix.dot(postselect_state))
         if i == 0:
             probability = probability
-            expectation = expectation
         else:
             probability *= probability_before_list[-1]
-            expectation = expectation_after_list[-1]
-
         probability_before_list.append(probability)
         expectation_before_list.append(expectation)
         statevector = postselect_state
         ## vqe part
         vqe_qc = qc1
-        vqe_ansatz = ansatz_hea(nqubits+1, vqe_depth, vqe_params)
+        vqe_ansatz = ansatz_vqe(nqubits, vqe_depth, vqe_params)
         vqe_qc.compose(vqe_ansatz, range(nqubits + 1), inplace=True)
         vqe_qc.save_statevector()
         vqe_qc = transpile(vqe_qc, simulator)
         vqe_callback = VQECallback(
-            simulator, vqe_qc, nqubits, expectation.real, H_matrix, -1e-2, vqe_params
+            simulator, vqe_qc, nqubits, expectation.real, H_matrix, 1e-1, vqe_params
         )
 
         np.random.seed(42)
@@ -264,7 +258,7 @@ def cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, step):
             options={"maxiter" : 1000},
         )
         print(vqe_result)
-        #parameter = vqe_result.x
+
         postselect_state = vqe_callback.run_sim(vqe_result.x)[: 2**nqubits]
         probability = np.linalg.norm(postselect_state)
         print(f"Probability at this step is {probability}")
@@ -316,7 +310,6 @@ def cosine_filtering_vqe_2(
     vqe_depth = 3
     vqe_nparams = vqe_depth * (2 * nqubits + 1)
     vqe_params = ParameterVector("θ", vqe_nparams)
-    parameter = np.random.random(vqe_nparams)
 
     for i in range(step):
         print(f"Running {i}", flush=True)
@@ -335,6 +328,7 @@ def cosine_filtering_vqe_2(
         postselect_state = np.copy(new_state[: 2**nqubits])
         probability = np.linalg.norm(postselect_state)
         postselect_state /= probability
+        #temp = np.copy(postselect_state)
         expectation = postselect_state.conj().T.dot(H_matrix.dot(postselect_state))
         if i == 0:
             probability = probability
@@ -343,14 +337,12 @@ def cosine_filtering_vqe_2(
         probability_before_list.append(probability)
         expectation_before_list.append(expectation)
         statevector = postselect_state
-        #temp_state = statevector
-        #temp_pro = probability
-        #temp_e = expectation
 
         old_expectation = expectation.real
         ## vqe part
+
         vqe_qc = QuantumCircuit(nqubits + 1)
-        vqe_qc.initialize(new_state, range(nqubits + 1)) #####
+        vqe_qc.initialize(new_state, range(nqubits + 1))
         vqe_ansatz = ansatz_vqe(nqubits, vqe_depth, vqe_params)
         vqe_qc.compose(vqe_ansatz, range(nqubits + 1), inplace=True)
         vqe_qc.save_statevector()
@@ -358,8 +350,9 @@ def cosine_filtering_vqe_2(
         vqe_callback = VQECallback(
             simulator, vqe_qc, nqubits, expectation.real, H_matrix, 1e-1, vqe_params
         )
+
         np.random.seed(42)
-        #parameter = np.random.random(vqe_nparams)
+        parameter = np.random.random(vqe_nparams)
         # parameter = np.zeros(vqe_nparams, dtype=np.float64)
         vqe_result = sp.optimize.minimize(
             vqe_callback.cost_func,
@@ -368,38 +361,30 @@ def cosine_filtering_vqe_2(
             constraints={"type": "ineq", "fun": vqe_callback.constraint_func},
         )
         print(vqe_result)
-        parameter = vqe_result.x
         postselect_state = vqe_callback.run_sim(vqe_result.x)[: 2**nqubits]
         probability = np.linalg.norm(postselect_state)
         postselect_state /= probability
         expectation = postselect_state.conj().T.dot(H_matrix.dot(postselect_state))
-        new_expectation = expectation.real
-        print(f"    {old_expectation} {new_expectation} ", end="")
-        if -(new_expectation - old_expectation - 1e-1) >= 0:
-        #if np.abs(new_expectation - old_expectation)<= 1e-1:
-            print(f"CONSTRAINT SATISFIED")
-            # statevector = postselect_state
-            # if i == 0:
-            #     probability = probability
-            # else:
-            #     probability *= probability_after_list[-1]
-            # probability_after_list.append(probability)
-            # expectation_after_list.append(expectation)
-        else:
-            if reject_if_fail:
-                print(f"CONSTRAINT UNSATISFIED")
-            else:
-                print("NOT REJECTING")
-                #statevector = temp_state
-                #probability_after_list.append(temp_pro)
-                #expectation_after_list.append(temp_e)
         if i == 0:
             probability = probability
         else:
             probability *= probability_after_list[-1]
         probability_after_list.append(probability)
         expectation_after_list.append(expectation)
-        statevector = postselect_state
+
+        new_expectation = expectation.real
+
+        print(f"    {old_expectation} {new_expectation} ", end="")
+        if -(new_expectation - old_expectation - 1e-1) >= 0:
+        #if np.abs(new_expectation - old_expectation)<= 1e-1:
+            print(f"CONSTRAINT SATISFIED")
+            statevector = postselect_state
+        else:
+            if reject_if_fail:
+                print(f"CONSTRAINT UNSATISFIED")
+            else:
+                print("NOT REJECTING")
+
     expectation_before_list = np.array(expectation_before_list)
     probability_before_list = np.array(probability_before_list)
     expectation_after_list = np.array(expectation_after_list)
@@ -455,10 +440,10 @@ def cosine_filtering_vqe_3(H, time, nqubits, order, time_step, error_rate, step)
         probability = np.linalg.norm(postselect_state)
         postselect_state /= probability
         expectation = postselect_state.conj().T.dot(H_matrix.dot(postselect_state))
-        #if i == 0:
-        #    probability = probability
-        #else:
-        #    probability *= probability_before_list[-1]
+        if i == 0:
+            probability = probability
+        else:
+            probability *= probability_before_list[-1]
         probability_before_list.append(probability)
         expectation_before_list.append(expectation)
         statevector = postselect_state
@@ -472,7 +457,7 @@ def cosine_filtering_vqe_3(H, time, nqubits, order, time_step, error_rate, step)
         vqe_qc.save_statevector()
         vqe_qc = transpile(vqe_qc, simulator)
         vqe_callback = VQECallback(
-            simulator, vqe_qc, nqubits, expectation.real, H_matrix, 1e-1, vqe_params
+            simulator, vqe_qc, nqubits, expectation.real, H_matrix, 1e-2, vqe_params
         )
 
         np.random.seed(42)
@@ -489,10 +474,10 @@ def cosine_filtering_vqe_3(H, time, nqubits, order, time_step, error_rate, step)
         probability = np.linalg.norm(postselect_state)
         postselect_state /= probability
         expectation = postselect_state.conj().T.dot(H_matrix.dot(postselect_state))
-        #if i == 0:
-        #    probability = probability
-        #else:
-        #    probability *= probability_after_list[-1]
+        if i == 0:
+            probability = probability
+        else:
+            probability *= probability_after_list[-1]
         probability_after_list.append(probability)
         expectation_after_list.append(expectation)
 
@@ -635,7 +620,7 @@ if __name__ == "__main__":
     initial_state = Statevector.from_label("00000")
     error_rate = 0
     order = 2
-    nstep = 27
+    nstep = 20
 
     H = SparsePauliOp.from_operator(Operator(H_array))
 
