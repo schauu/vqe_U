@@ -182,6 +182,8 @@ class VQECallback:
         self.threshold = threshold
         self.param = param
 
+
+
     def run_sim(self, params):
         new_circuit = self.circuit.assign_parameters(params)
         result = self.sim.run(new_circuit).result()
@@ -261,6 +263,14 @@ def cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, step, t
         expectation_before_list.append(expectation)
         statevector = postselect_state
         ## vqe part
+        result_intermediate = []
+
+        def callback(intermediate_result):
+            statevector = vqe_callback.run_sim(intermediate_result)
+            probability = np.linalg.norm(statevector[: 2 ** nqubits])
+            result_intermediate.append(probability)
+            #result_intermediate.append(intermediate_result.fun)
+
 
         vqe_qc = qc1
         vqe_ansatz = ansatz_1(nqubits+1, vqe_depth, vqe_params)
@@ -280,6 +290,7 @@ def cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, step, t
             method="SLSQP",
             constraints={"type": "ineq", "fun": vqe_callback.constraint_func},
             options={"maxiter" : 1000},
+            callback=callback,
         )
         print(vqe_result)
         #parameter = vqe_result.x
@@ -312,6 +323,7 @@ def cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, step, t
         probability_before_list,
         expectation_after_list.real,
         probability_after_list,
+        result_intermediate,
     )
 
 
@@ -625,6 +637,80 @@ def plot_data3(
     fig.subplots_adjust(right=0.75)
     fig.savefig(filename, dpi=600)
 
+def plot_data4(
+filename, nstep, intermediate_values):
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+    step = list(range(nstep[0]))
+    step1 = list(range(nstep[1]))
+    step2 = list(range(nstep[2]))
+    step3 = list(range(nstep[3]))
+    colors = ["darkmagenta", "limegreen", "k", "r"]
+    markers = ["*", "x", "v", "1"]
+    ax1.plot(
+        step,
+        intermediate_values[0],
+        label="Expect error 0",
+        marker=markers[0],
+        c=colors[0],
+        ls="-",
+        lw=0.8,
+    )
+    ax1.plot(
+    step1,
+    intermediate_values[1],
+    label="Expect error 1e-4",
+    marker=markers[1],
+    c=colors[1],
+    ls="-",
+    lw=0.8,
+    )
+    ax1.plot(
+    step2,
+    intermediate_values[2],
+    label="Expect error 1e-3",
+    marker=markers[2],
+    c=colors[2],
+    ls="-",
+    lw=0.8,
+    )
+    ax1.plot(
+    step3,
+    intermediate_values[3],
+    label="Expect error 1e-2",
+    marker=markers[3],
+    c=colors[3],
+    ls="-",
+    lw=0.8,
+    )
+    ax1.axhline(
+    y=np.min(np.concatenate(intermediate_values)),
+    color="r",
+    linestyle="--",
+    label="Minimum expectation",
+    )
+    ax1.set_xlabel("Step")
+    ax1.set_ylabel("Expectation", color=colors[0])
+    ax1.tick_params(axis="y", labelcolor=colors[0])
+
+    handles1, labels1 = ax1.get_legend_handles_labels()
+
+    all_handles = handles1
+    all_labels = labels1
+
+    legend = fig.legend(
+        all_handles,
+        all_labels,
+        bbox_to_anchor=(0.80, 0.5),
+        loc="center left",
+        # framealpha=0.5,
+    )
+
+    ax1.set_title("Only VQE for expectation over Steps")
+
+    fig.tight_layout()
+    fig.subplots_adjust(right=0.75)
+    fig.savefig(filename, dpi=600)
+
 if __name__ == "__main__":
     nqubits = 4
     J = 1.0 / np.sqrt(2)
@@ -644,7 +730,7 @@ if __name__ == "__main__":
     error_rate2 = 1e-3
     error_rate3 = 1e-2
     order = 2
-    nstep = 100
+    nstep = 2
     threshold = 1e-6
 
     H = SparsePauliOp.from_operator(Operator(H_array))
@@ -686,16 +772,26 @@ if __name__ == "__main__":
 
 
     ##pure VQE
-    cut_off = 30
-    result = vqe(nqubits, depth, error_rate)
-    result = result[:cut_off]
-    result1 = vqe(nqubits, depth, error_rate1)
-    result1 = result1[:cut_off]
-    result2 = vqe(nqubits, depth, error_rate2)
-    result2 = result2[:cut_off]
-    result3 = vqe(nqubits, depth, error_rate3)
-    result3 = result3[:cut_off]
-    nstep = [len(result), len(result1), len(result2), len(result3)]
-    result_intermediate = [result, result1, result2, result3]
-    plot_data3('pure VQE hea test 2', nstep, result_intermediate)
+    #cut_off = 30
+    #result = vqe(nqubits, depth, error_rate)
+    #result = result[:cut_off]
+    #result1 = vqe(nqubits, depth, error_rate1)
+    #result1 = result1[:cut_off]
+    #result2 = vqe(nqubits, depth, error_rate2)
+    #result2 = result2[:cut_off]
+    #result3 = vqe(nqubits, depth, error_rate3)
+    #result3 = result3[:cut_off]
+    #nstep = [len(result), len(result1), len(result2), len(result3)]
+    #result_intermediate = [result, result1, result2, result3]
+    #plot_data3('pure VQE hea test 2', nstep, result_intermediate)
+
+    ##
+    result_intermediate = cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, nstep, threshold)[-1]
+    result_intermediate1 = cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate1, nstep, threshold)[-1]
+    result_intermediate2 = cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate2, nstep, threshold)[-1]
+    result_intermediate3 = cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate3, nstep, threshold)[-1]
+    result = [result_intermediate, result_intermediate1, result_intermediate2, result_intermediate3]
+    nstep = [len(result_intermediate), len(result_intermediate1), len(result_intermediate2), len(result_intermediate3)]
+    plot_data4('cosine+VQE', nstep, result)
+
 
