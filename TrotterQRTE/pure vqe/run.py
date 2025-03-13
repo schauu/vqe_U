@@ -330,7 +330,7 @@ def cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, step, t
 def cost_function(params, nqubits, depth, error_rate):
     J = 1/np.sqrt(2)
     hamiltonian =  get_hamiltonian(nqubits, J)
-    circuit =  ansatz_hea(nqubits, depth,params)
+    circuit =  ansatz_hamiltonian(nqubits, depth,params)
     circuit = circuit.decompose()
     noise_model = NoiseModel()
     error = depolarizing_error(error_rate, 1)
@@ -351,8 +351,8 @@ def cost_function(params, nqubits, depth, error_rate):
     return expectation.real
 
 def vqe(nqubits, depth, error_rate):
-    #vqe_nparams = depth * 2 * nqubits  ## hva
-    vqe_nparams = depth * nqubits ## hea
+    vqe_nparams = depth * 2 * nqubits  ## hva
+    #vqe_nparams = depth * nqubits ## hea
     vqe_params = np.random.random(vqe_nparams)
     result_intermediate = []
     def callback(intermediate_result):
@@ -582,7 +582,7 @@ def plot_data3(
         step,
         intermediate_values[0],
         label="Expect error 0",
-        marker=markers[0],
+        #marker=markers[0],
         c=colors[0],
         ls="-",
         lw=0.8,
@@ -591,7 +591,7 @@ def plot_data3(
         step1,
         intermediate_values[1],
         label="Expect error 1e-4",
-        marker=markers[1],
+        #marker=markers[1],
         c=colors[1],
         ls="-",
         lw=0.8,
@@ -600,7 +600,7 @@ def plot_data3(
         step2,
         intermediate_values[2],
         label="Expect error 1e-3",
-        marker=markers[2],
+        #marker=markers[2],
         c=colors[2],
         ls="-",
         lw=0.8,
@@ -609,7 +609,7 @@ def plot_data3(
         step3,
         intermediate_values[3],
         label="Expect error 1e-2",
-        marker=markers[3],
+        #marker=markers[3],
         c=colors[3],
         ls="-",
         lw=0.8,
@@ -854,7 +854,7 @@ if __name__ == "__main__":
     H_array = (H_array - emin * np.eye(2**nqubits)) / (emax - emin)  ## scale H
     final_time = np.pi / 2  # time
     time = final_time
-    time_step = 3  # time_step
+    time_step = 3  # trotter step
     initial_state = Statevector.from_label("00000")
     error_rate = 0
     error_rate1 = 1e-4
@@ -901,19 +901,22 @@ if __name__ == "__main__":
 
 
     ##pure VQE
-    cut_off = 30
+    #cut_off = 30
     result = vqe(nqubits, depth, error_rate)
-    result = result[:cut_off]
+    #result = result[:cut_off]
     result1 = vqe(nqubits, depth, error_rate1)
-    result1 = result1[:cut_off]
+    #result1 = result1[:cut_off]
     result2 = vqe(nqubits, depth, error_rate2)
-    result2 = result2[:cut_off]
+    #result2 = result2[:cut_off]
     result3 = vqe(nqubits, depth, error_rate3)
-    result3 = result3[:cut_off]
+    #result3 = result3[:cut_off]
     nstep = [len(result), len(result1), len(result2), len(result3)]
     result_intermediate = [result, result1, result2, result3]
-    plot_data3('pure VQE hea', nstep, result_intermediate)
-    #with open()
+    plot_data3('pure VQE hva 1', nstep, result_intermediate)
+    with open('pure_vqe_hva.txt', 'w', encoding='utf-8') as f:
+        for i in range(len(result)):
+            f.write(f"{result[i]}\t{result1[i]}\t{result2[i]}\t{result3[i]}\n")
+        print('Result has been stored')
 
     ##
     # result_intermediate = cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, nstep, threshold)[-1]
