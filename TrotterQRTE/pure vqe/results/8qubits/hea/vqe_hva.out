@@ -1,0 +1,80 @@
+Optimization terminated successfully.
+         Current function value: -7.105704
+         Iterations: 952
+         Function evaluations: 57969
+         Gradient evaluations: 1017
+  message: Optimization terminated successfully.
+  success: True
+   status: 0
+      fun: -7.105703861850843
+        x: [ 1.117e+00 -6.965e-01 ...  1.444e+00  1.896e+00]
+      nit: 952
+      jac: [-6.080e-06 -3.576e-07 ... -9.537e-07 -6.557e-07]
+ hess_inv: [[ 1.073e+03  5.922e+02 ...  1.004e+01  6.182e-01]
+            [ 5.922e+02  5.443e+02 ...  6.597e+00  2.152e+00]
+            ...
+            [ 1.004e+01  6.597e+00 ...  4.145e+00 -1.363e+00]
+            [ 6.182e-01  2.152e+00 ... -1.363e+00  3.265e+00]]
+     nfev: 57969
+     njev: 1017
+Optimization terminated successfully.
+         Current function value: -6.919886
+         Iterations: 292
+         Function evaluations: 17100
+         Gradient evaluations: 300
+  message: Optimization terminated successfully.
+  success: True
+   status: 0
+      fun: -6.919885940932081
+        x: [ 1.080e+00  1.571e+00 ... -1.880e+00  2.143e+00]
+      nit: 292
+      jac: [-5.960e-07  5.662e-06 ...  1.669e-06  1.788e-07]
+ hess_inv: [[ 3.995e+01  1.029e+01 ... -2.775e+00  1.226e+00]
+            [ 1.029e+01  3.781e+02 ... -3.809e-01  9.606e-02]
+            ...
+            [-2.775e+00 -3.809e-01 ...  4.520e+00 -1.922e+00]
+            [ 1.226e+00  9.606e-02 ... -1.922e+00  1.488e+00]]
+     nfev: 17100
+     njev: 300
+Optimization terminated successfully.
+         Current function value: -6.206148
+         Iterations: 255
+         Function evaluations: 15048
+         Gradient evaluations: 264
+  message: Optimization terminated successfully.
+  success: True
+   status: 0
+      fun: -6.206147668304694
+        x: [ 1.341e+00 -4.087e-02 ...  1.569e+00  1.864e+00]
+      nit: 255
+      jac: [ 1.729e-06 -3.755e-06 ...  5.364e-07  8.345e-07]
+ hess_inv: [[ 5.488e+01  4.506e+00 ... -1.182e-01 -4.591e-01]
+            [ 4.506e+00  1.889e+00 ...  1.165e-01 -3.360e-01]
+            ...
+            [-1.182e-01  1.165e-01 ...  1.251e+00 -4.588e-01]
+            [-4.591e-01 -3.360e-01 ... -4.588e-01  1.902e+00]]
+     nfev: 15048
+     njev: 264
+Optimization terminated successfully.
+         Current function value: -1.633228
+         Iterations: 285
+         Function evaluations: 16530
+         Gradient evaluations: 290
+  message: Optimization terminated successfully.
+  success: True
+   status: 0
+      fun: -1.6332281217749605
+        x: [ 3.142e+00  4.608e-02 ...  1.533e+00  2.095e+00]
+      nit: 285
+      jac: [ 8.687e-06  5.811e-07 ...  4.768e-06 -7.004e-07]
+ hess_inv: [[ 2.144e+01  9.129e-02 ... -4.867e-01  2.902e-01]
+            [ 9.129e-02  3.572e+01 ... -6.552e-02 -3.481e-02]
+            ...
+            [-4.867e-01 -6.552e-02 ...  3.038e+00 -5.284e-01]
+            [ 2.902e-01 -3.481e-02 ... -5.284e-01  1.986e+00]]
+     nfev: 16530
+     njev: 290
+Traceback (most recent call last):
+  File "/gpfs1/scratch/xzhu24/pure_vqe/8qubits/hea/./run.py", line 483, in <module>
+    f.write(f"{result[i]}\t{result1[i]}\t{result2[i]}\t{result3[i]}\n")
+IndexError: list index out of range

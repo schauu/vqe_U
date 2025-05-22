@@ -99,6 +99,7 @@ def ansatz_1(nqubits, depth, params):
             circuit.cry(params[t], i, i+1)
             t+=1
     return circuit
+
 def construct_trotter_circuit(H, time, nqubits, order, time_step):
     if order == 0:
         formular = MatrixExponential()
@@ -166,9 +167,7 @@ def cosine_filtering(H, time, nqubits, order, time_step, error_rate, step, thres
 
     expectation_list = np.array(expectation_list)
     probability_list = np.array(probability_list)
-
     assert np.max(np.abs(np.imag(expectation_list))) < 1e-6
-
     return expectation_list.real, probability_list
 
 
@@ -182,8 +181,6 @@ class VQECallback:
         self.threshold = threshold
         self.param = param
 
-
-
     def run_sim(self, params):
         new_circuit = self.circuit.assign_parameters(params)
         result = self.sim.run(new_circuit).result()
@@ -194,15 +191,6 @@ class VQECallback:
         statevector = self.run_sim(params)
         probability = np.linalg.norm(statevector[: 2**self.nqubits])
         return -probability
-
-    def cost_func_3(self, params):
-        # for cosine_filtering_vqe_3
-        statevector = self.run_sim(params)
-        statevector = statevector[: 2**self.nqubits]
-        probability = np.linalg.norm(statevector[: 2**self.nqubits])
-        statevector /= probability
-        expectation = statevector.conj().dot(self.H_matrix.dot(statevector)).real
-        return -probability + 1 * (expectation - self.reference)
 
     def constraint_func(self, params):
         statevector = self.run_sim(params)
@@ -283,17 +271,15 @@ def cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, step, t
 
         np.random.seed(42)
         parameter = np.random.random(vqe_nparams)
-        # parameter = np.zeros(vqe_nparams, dtype=np.float64)
         vqe_result = sp.optimize.minimize(
             vqe_callback.cost_func,
             parameter,
             method="SLSQP",
             constraints={"type": "ineq", "fun": vqe_callback.constraint_func},
-            options={"maxiter" : 1000},
+            options={"maxiter" : 200},
             callback=callback,
         )
         print(vqe_result)
-        #parameter = vqe_result.x
         postselect_state = vqe_callback.run_sim(vqe_result.x)[: 2**nqubits]
         probability = np.linalg.norm(postselect_state)
         print(f"Probability at this step is {probability}")
@@ -319,8 +305,6 @@ def cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, step, t
     assert np.max(np.abs(np.imag(expectation_after_list))) < 1e-6
 
     return (
-        expectation_before_list.real,
-        probability_before_list,
         expectation_after_list.real,
         probability_after_list,
         #result_intermediate,
@@ -337,15 +321,10 @@ def cost_function(params, nqubits, depth, error_rate):
     noise_model.add_all_qubit_quantum_error(error, ['u1', 'u2', 'u3'])
     error1 = depolarizing_error(error_rate*10, 2)
     noise_model.add_all_qubit_quantum_error(error1,'cx')
-    #circuit.save_statevector()
     if error_rate == 0:
         estimator = EstimatorV2()
-        #print('error rate is 0')
     else:
-        #print('error rate is ' + str(error_rate))
         estimator = EstimatorV2(options=dict(backend_options=dict(noise_model=noise_model)))
-        #circuit = transpile(circuit, sim_d)
-        #noise_result = sim_d.run(circ_noise, shots=1).result()
     result =estimator.run([(circuit, hamiltonian)]).result()
     expectation=result[0].data.evs
     return expectation.real
@@ -364,7 +343,7 @@ def vqe(nqubits, depth, error_rate):
     return result_intermediate
 
 def plot_data(
-    filename, nstep, f_e, f_p, fv_before_e, fv_before_p, fv_after_e, fv_after_p
+    filename, nstep, f_e, f_p, fv_after_e, fv_after_p
 ):
     fig, ax1 = plt.subplots(figsize=(12, 6))
 
@@ -383,15 +362,6 @@ def plot_data(
         ls="-",
         lw=0.8,
     )
-    # ax1.plot(
-    #     step,
-    #     fv_before_e,
-    #     label="Filter+VQE Expect before",
-    #     marker=markers[1],
-    #     c=colors[0],
-    #     ls="-",
-    #     lw=0.8,
-    # )
     ax1.plot(
         step[:length],
         fv_after_e,
@@ -407,7 +377,7 @@ def plot_data(
         linestyle="--",
         label="Minimum expectation",
     )
-    # ax1.plot(step, expectation_exact, c="k", ls=":", label="Expectation exact")
+
     ax1.set_xlabel("Time Step")
     ax1.set_ylabel("Expectation", color=colors[0])
     ax1.tick_params(axis="y", labelcolor=colors[0])
@@ -423,15 +393,7 @@ def plot_data(
         ls="-",
         lw=0.8,
     )
-    # ax2.plot(
-    #     step,
-    #     fv_before_p,
-    #     label="Filter+VQE Prob before",
-    #     marker=markers[1],
-    #     c=colors[1],
-    #     ls="-",
-    #     lw=0.8,
-    # )
+
     ax2.plot(
         step[:length],
         fv_after_p,
@@ -463,385 +425,10 @@ def plot_data(
         bbox_transform=ax1.transAxes
     )
 
-    #ax1.set_title("Comparison of Expectations and Probabilities over Steps")
-
     fig.tight_layout()
     fig.subplots_adjust(right=0.75)
     fig.savefig(filename, dpi=600)
 
-def plot_data2(
-    filename, nstep, f_e, f_p, f_e1, f_p1, f_e2, f_p2):
-    fig, ax1 = plt.subplots(figsize=(12, 6))
-    step = list(range(nstep))
-    colors = ["darkmagenta", "limegreen", "k"]
-    markers = ["*", "x", "v", ":"]
-    length = len(f_e)
-    length1 = len(f_e1)
-    length2 = len(f_e2)
-    ax1.plot(
-        step[:length2],
-        f_e2,
-        label="Expect error 1e-3",
-        marker=markers[2],
-        c=colors[0],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.plot(
-        step[:length1],
-        f_e,
-        label="Expect error 0",
-        marker=markers[0],
-        c=colors[0],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.plot(
-        step[:length],
-        f_e1,
-        label="Expect error 1e-4",
-        marker=markers[1],
-        c=colors[0],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.axhline(
-        y=np.min(np.concatenate([f_e])),
-        color="r",
-        linestyle="--",
-        label="Minimum expectation",
-    )
-    ax1.set_xlabel("Step")
-    ax1.set_ylabel("Expectation", color=colors[0])
-    ax1.tick_params(axis="y", labelcolor=colors[0])
-    ax2 = ax1.twinx()
-    ax2.plot(
-        step[:length2],
-        f_p2,
-        label="Prob error 1e-3",
-        marker=markers[2],
-        c=colors[1],
-        ls="-",
-        lw=0.8,
-    )
-    ax2.plot(
-        step[:length1],
-        f_p,
-        label="Prob error 0",
-        marker=markers[0],
-        c=colors[1],
-        ls="-",
-        lw=0.8,
-    )
-    ax2.plot(
-        step[:length],
-        f_p1,
-        label="Prob error 1e-4",
-        marker=markers[1],
-        c=colors[1],
-        ls="-",
-        lw=0.8,
-    )
-    ax2.set_ylabel("Probability", color=colors[1])
-    ax2.set_ylim(0, 1)
-    ax2.tick_params(axis="y", labelcolor=colors[1])
-
-    handles1, labels1 = ax1.get_legend_handles_labels()
-    handles2, labels2 = ax2.get_legend_handles_labels()
-
-    all_handles = handles1 + handles2
-    all_labels = labels1 + labels2
-
-    legend = fig.legend(
-        all_handles,
-        all_labels,
-        bbox_to_anchor=(0, 0, 1, 1),
-        loc="upper right",
-        #ncol=3,
-        borderaxespad=0,
-        fontsize=8,
-        bbox_transform=ax1.transAxes
-    )
-
-    #ax1.set_title("Comparison of Expectations and Probabilities over Steps")
-
-    fig.tight_layout()
-    fig.subplots_adjust(right=0.75)
-    fig.savefig(filename, dpi=600)
-
-def plot_data3(
-    filename, nstep, intermediate_values):
-    fig, ax1 = plt.subplots(figsize=(12, 6))
-    step = list(range(nstep[0]))
-    step1 = list(range(nstep[1]))
-    step2 = list(range(nstep[2]))
-    step3 = list(range(nstep[3]))
-    colors = ["darkmagenta", "limegreen", "k","r"]
-    markers = ["*", "x", "v", "1"]
-    ax1.plot(
-        step,
-        intermediate_values[0],
-        label="Expect error 0",
-        #marker=markers[0],
-        c=colors[0],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.plot(
-        step1,
-        intermediate_values[1],
-        label="Expect error 1e-4",
-        #marker=markers[1],
-        c=colors[1],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.plot(
-        step2,
-        intermediate_values[2],
-        label="Expect error 1e-3",
-        #marker=markers[2],
-        c=colors[2],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.plot(
-        step3,
-        intermediate_values[3],
-        label="Expect error 1e-2",
-        #marker=markers[3],
-        c=colors[3],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.axhline(
-        y=np.min(np.concatenate(intermediate_values)),
-        color="r",
-        linestyle="--",
-        label="Minimum expectation",
-    )
-    ax1.set_xlabel("Step")
-    ax1.set_ylabel("Expectation", color=colors[0])
-    ax1.tick_params(axis="y", labelcolor=colors[0])
-
-    handles1, labels1 = ax1.get_legend_handles_labels()
-
-    all_handles = handles1
-    all_labels = labels1
-
-    legend = fig.legend(
-        all_handles,
-        all_labels,
-        bbox_to_anchor=(0, 0, 1, 1),
-        loc="upper right",
-        # ncol=3,
-        borderaxespad=0,
-        fontsize=8,
-        bbox_transform=ax1.transAxes
-    )
-
-    #ax1.set_title("Only VQE for expectation over Steps")
-
-    fig.tight_layout()
-    fig.subplots_adjust(right=0.75)
-    fig.savefig(filename, dpi=600)
-
-def plot_data4(
-filename, nstep, intermediate_values):
-    fig, ax1 = plt.subplots(figsize=(12, 6))
-    step = list(range(nstep[0]))
-    step1 = list(range(nstep[1]))
-    step2 = list(range(nstep[2]))
-    step3 = list(range(nstep[3]))
-    colors = ["darkmagenta", "limegreen", "k", "r"]
-    markers = ["*", "x", "v", "1"]
-    ax1.plot(
-        step,
-        intermediate_values[0],
-        label="Prob error 0",
-        marker=markers[0],
-        c=colors[0],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.plot(
-    step1,
-    intermediate_values[1],
-    label="Prob error 1e-4",
-    marker=markers[1],
-    c=colors[1],
-    ls="-",
-    lw=0.8,
-    )
-    ax1.plot(
-    step2,
-    intermediate_values[2],
-    label="Prob error 1e-3",
-    marker=markers[2],
-    c=colors[2],
-    ls="-",
-    lw=0.8,
-    )
-    ax1.plot(
-    step3,
-    intermediate_values[3],
-    label="Prob error 1e-2",
-    marker=markers[3],
-    c=colors[3],
-    ls="-",
-    lw=0.8,
-    )
-    # ax1.axhline(
-    # y=np.min(np.concatenate(intermediate_values)),
-    # color="r",
-    # linestyle="--",
-    # label="Minimum expectation",
-    # )
-    ax1.set_xlabel("iteration steps")
-    ax1.set_ylabel("Probability", color=colors[1])
-    ax1.tick_params(axis="y", labelcolor=colors[1])
-
-    handles1, labels1 = ax1.get_legend_handles_labels()
-
-    all_handles = handles1
-    all_labels = labels1
-
-    legend = fig.legend(
-        all_handles,
-        all_labels,
-        bbox_to_anchor=(0, 0, 1, 1),
-        loc="upper right",
-        # ncol=3,
-        borderaxespad=0,
-        fontsize=8,
-        bbox_transform=ax1.transAxes
-    )
-
-    #ax1.set_title("Cosine+VQE for probability for one step")
-
-    fig.tight_layout()
-    fig.subplots_adjust(right=0.75)
-    fig.savefig(filename, dpi=600)
-
-def plot_data5(
-    filename, nstep, f_e, f_p, f_e1, f_p1, f_e2, f_p2, f_e4, f_p4):
-    fig, ax1 = plt.subplots(figsize=(12, 6))
-    step = list(range(nstep))
-    colors = ["darkmagenta", "limegreen", "k", 'b']
-    markers = ["+", "x", "v", "*"]
-    length = len(f_e)
-    length1 = len(f_e1)
-    length2 = len(f_e2)
-    length4 = len(f_e4)
-    ax1.plot(
-        step[:length2],
-        f_e2,
-        label="Expectations for Second order trotterization",
-        marker=markers[2],
-        c=colors[0],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.plot(
-        step[:length1],
-        f_e1,
-        label="Expectations for First order trotterization",
-        marker=markers[0],
-        c=colors[0],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.plot(
-        step[:length],
-        f_e,
-        label="Expectations for Exact matrix exponential",
-        marker=markers[3],
-        c=colors[0],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.plot(
-        step[:length4],
-        f_e4,
-        label="Expectations for Forth order trotterization",
-        marker=markers[1],
-        c=colors[0],
-        ls="-",
-        lw=0.8,
-    )
-    ax1.axhline(
-        y=np.min(np.concatenate([f_e1, f_e, f_e2, f_e4])),
-        color="r",
-        linestyle="--",
-        label="Minimum expectation",
-    )
-    ax1.set_xlabel("Time Step")
-    ax1.set_ylabel("Expectation", color=colors[0])
-    ax1.tick_params(axis="y", labelcolor=colors[0])
-    ax2 = ax1.twinx()
-    ax2.plot(
-        step[:length2],
-        f_p2,
-        label="Successful probability for Second order trotterization",
-        marker=markers[2],
-        c=colors[1],
-        ls="-",
-        lw=0.8,
-    )
-    ax2.plot(
-        step[:length1],
-        f_p1,
-        label="Successful probability for First order trotterization",
-        marker=markers[0],
-        c=colors[1],
-        ls="-",
-        lw=0.8,
-    )
-    ax2.plot(
-        step[:length],
-        f_p,
-        label="Successful probability for Exact matrix exponential",
-        marker=markers[3],
-        c=colors[1],
-        ls="-",
-        lw=0.8,
-    )
-    ax2.plot(
-        step[:length4],
-        f_p4,
-        label="Successful probability for Fourth order trotterization",
-        marker=markers[1],
-        c=colors[1],
-        ls="-",
-        lw=0.8,
-    )
-    ax2.set_ylabel("Successful Probability", color=colors[1])
-    ax2.set_ylim(0, 1)
-    ax2.tick_params(axis="y", labelcolor=colors[1])
-
-    handles1, labels1 = ax1.get_legend_handles_labels()
-    handles2, labels2 = ax2.get_legend_handles_labels()
-
-    all_handles = handles1 + handles2
-    all_labels = labels1 + labels2
-
-    legend = fig.legend(
-        all_handles,
-        all_labels,
-        bbox_to_anchor=(0, 0, 1, 1),
-        loc="upper right",
-        #ncol=3,
-        borderaxespad=0,
-        fontsize=8,
-        bbox_transform=ax1.transAxes
-    )
-
-    #ax1.set_title("Comparison of Expectations and Probabilities over Steps")
-
-    fig.tight_layout()
-    fig.subplots_adjust(right=0.75)
-
-    fig.savefig(filename, dpi=600)
 if __name__ == "__main__":
     nqubits = 4
     J = 1.0 / np.sqrt(2)
@@ -857,21 +444,16 @@ if __name__ == "__main__":
     time_step = 3  # trotter step
     initial_state = Statevector.from_label("00000")
     error_rate = 0
-    error_rate1 = 1e-4
-    error_rate2 = 1e-3
-    error_rate3 = 1e-2
     order = 2
     nstep = 30
     threshold = 1e-6
-
     H = SparsePauliOp.from_operator(Operator(H_array))
-
     depth = 3
 
 
     f_e, f_p = cosine_filtering(H, time, nqubits, order, time_step, error_rate, nstep, threshold)
-    f_before_e, f_before_p, f_after_e, f_after_p = cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, nstep, threshold)
-    plot_data("vqe+U", nstep, f_e, f_p, f_before_e, f_before_p, f_after_e, f_after_p)
+    f_after_e, f_after_p = cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, nstep, threshold)
+    plot_data("vqe+U", nstep, f_e, f_p,  f_after_e, f_after_p)
     with open('pure U.txt', 'w', encoding='utf-8') as f:
        for i in range(nstep):
            f.write(f"{f_e[i]}\t{f_p[i]}\n")
@@ -880,18 +462,4 @@ if __name__ == "__main__":
        for i in range(len(f_after_e)):
            f.write(f"{f_after_e[i]}\t{f_after_p[i]}\n")
        print('Result for U+vqe has been stored')
-
-
-    ## U + vqe
-    # result_intermediate = cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate, nstep, threshold)[-1]
-    # result_intermediate1 = cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate1, nstep, threshold)[-1]
-    # result_intermediate2 = cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate2, nstep, threshold)[-1]
-    # result_intermediate3 = cosine_filtering_vqe(H, time, nqubits, order, time_step, error_rate3, nstep, threshold)[-1]
-    # result = [result_intermediate, result_intermediate1, result_intermediate2, result_intermediate3]
-    # nstep = [len(result_intermediate), len(result_intermediate1), len(result_intermediate2), len(result_intermediate3)]
-    # plot_data4('cosine+VQE error', nstep, result)
-    # with open('U_vqe_hea.txt', 'w', encoding='utf-8') as f:
-    #    for i in range(nstep):
-    #        f.write(f"{result_intermediate[i]}\t{result_intermediate1[i]}\t{result_intermediate2[i]}\t{result_intermediate3[i]}\n")
-    #    print('Result has been stored')
 

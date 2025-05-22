@@ -1,0 +1,153 @@
+hpcnode003
+hpclogin02
+/gpfs1/scratch/xzhu24/pure_vqe/6qubits/hea
+LC_ALL=en_US.UTF8
+LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=01;05;37;41:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=01;36:*.au=01;36:*.flac=01;36:*.m4a=01;36:*.mid=01;36:*.midi=01;36:*.mka=01;36:*.mp3=01;36:*.mpc=01;36:*.ogg=01;36:*.ra=01;36:*.wav=01;36:*.oga=01;36:*.opus=01;36:*.spx=01;36:*.xspf=01;36:
+LD_LIBRARY_PATH=/home/xzhu24/SHARE/apps/lib:/cm/shared/common_software_stack/apps/programming/interperters/python/3.10.2/lib:/cm/shared/apps/slurm/current/lib64/slurm:/cm/shared/apps/slurm/current/lib64:/cm/shared/apps/compiler/gcc/9.3.0/lib:/cm/shared/apps/compiler/gcc/9.3.0/lib64:/usr/lib64::
+SLURM_NODEID=0
+SLURM_TASK_PID=118636
+__LMOD_REF_COUNT_PATH=/cm/shared/common_software_stack/apps/programming/interperters/python/3.10.2/bin:1;/cm/shared/apps/slurm/current/sbin:2;/cm/shared/apps/slurm/current/bin:2;/cm/shared/apps/compiler/gcc/9.3.0/bin:1;/home/xzhu24/.local/bin:1;/home/xzhu24/bin:1;/usr/local/bin:1;/usr/bin:1;/usr/local/sbin:1;/usr/sbin:1;/usr/local/rvm/bin:1;/usr/lpp/mmfs/bin:2;/cm/shared/apps/firefox:1
+_ModuleTable002_=bHZpbi1ib290c3RyYXAiLApmdWxsTmFtZSA9ICJjYWx2aW4tYm9vdHN0cmFwIiwKbG9hZE9yZGVyID0gNiwKcHJvcFQgPSB7fSwKc3RhY2tEZXB0aCA9IDAsCnN0YXR1cyA9ICJhY3RpdmUiLAp1c2VyTmFtZSA9ICJjYWx2aW4tYm9vdHN0cmFwIiwKd1YgPSAiTS4qemZpbmFsIiwKfSwKZ2NjID0gewpmbiA9ICIvY20vc2hhcmVkL21vZHVsZWZpbGVzL2NvbXBpbGVyL2djYy85LjMuMCIsCmZ1bGxOYW1lID0gImdjYy85LjMuMCIsCmxvYWRPcmRlciA9IDMsCnByb3BUID0ge30sCnN0YWNrRGVwdGggPSAxLApzdGF0dXMgPSAiYWN0aXZlIiwKdXNlck5hbWUgPSAiZ2NjLzkuMy4wIiwKd1YgPSAiMDAwMDAwMDA5LjAwMDAwMDAwMy4qemZpbmFsIiwKfSwKcHl0aG9uID0gewpmbiA9
+SSH_CONNECTION=144.214.0.13 49565 144.214.138.99 22
+SLURM_PRIO_PROCESS=14
+LANG=en_US.UTF-8
+SLURM_SUBMIT_DIR=/gpfs1/scratch/xzhu24/pure_vqe/6qubits/hea
+HISTCONTROL=ignoredups
+HOSTNAME=hpcnode003
+rvm_bin_path=/usr/local/rvm/bin
+LMOD_SYSTEM_DEFAULT_MODULES=DefaultModules
+OLDPWD=/home/xzhu24/scratch/pure_vqe/6qubits/hea
+SLURM_CPUS_PER_TASK=16
+ENVIRONMENT=BATCH
+rvm_version=1.29.12-next (master)
+SLURM_PROCID=0
+SLURM_JOB_GID=90679661
+__LMOD_REF_COUNT_LD_LIBRARY_PATH=/cm/shared/common_software_stack/apps/programming/interperters/python/3.10.2/lib:1;/cm/shared/apps/slurm/current/lib64/slurm:2;/cm/shared/apps/slurm/current/lib64:2;/cm/shared/apps/compiler/gcc/9.3.0/lib:1;/cm/shared/apps/compiler/gcc/9.3.0/lib64:1;/usr/lib64:1
+SLURMD_NODENAME=hpcnode003
+SLURM_JOB_END_TIME=1743390824
+_ModuleTable004_=ICJzaGFyZWQiLAp3ViA9ICJNLip6ZmluYWwiLAp9LApzbHVybSA9IHsKZm4gPSAiL2NtL3NoYXJlZC9tb2R1bGVmaWxlcy9lc3NlbnRpYWwvc2x1cm0iLApmdWxsTmFtZSA9ICJzbHVybSIsCmxvYWRPcmRlciA9IDQsCnByb3BUID0ge30sCnN0YWNrRGVwdGggPSAxLApzdGF0dXMgPSAiYWN0aXZlIiwKdXNlck5hbWUgPSAic2x1cm0iLAp3ViA9ICJNLip6ZmluYWwiLAp9LAp9LAptcGF0aEEgPSB7CiIvaG9tZS94emh1MjQvbW9kdWxlZmlsZXMiLCAiL2hvbWUveHpodTI0L1NIQVJFL21vZHVsZWZpbGVzIiwgIi9jbS9zaGFyZWQvbW9kdWxlZmlsZXMvZXNzZW50aWFsIgosICIvY20vc2hhcmVkL21vZHVsZWZpbGVzL2NvbXBpbGVyIiwgIi9jbS9zaGFyZWQvbW9kdWxlZmlsZXMv
+SLURM_TASKS_PER_NODE=1
+S_COLORS=auto
+XDG_SESSION_ID=751842
+SLURM_NNODES=1
+USER=xzhu24
+SLURM_LOCAL_SCRATCH=/local/xzhu24_1142508
+SLURM_JOB_START_TIME=1743131624
+SLURM_NTASKS_PER_NODE=1
+__LMOD_REF_COUNT_MODULEPATH=/home/xzhu24/modulefiles:1;/home/xzhu24/SHARE/modulefiles:1;/cm/shared/modulefiles/essential:1;/cm/shared/modulefiles/compiler:1;/cm/shared/modulefiles/library:1;/cm/shared/modulefiles/mpi:1;/cm/shared/common_software_stack/modulefiles/COMPILER:1;/cm/shared/common_software_stack/modulefiles/MPI:1;/cm/shared/common_software_stack/modulefiles/IO:1;/cm/shared/common_software_stack/modulefiles/MATHS:1;/cm/shared/common_software_stack/modulefiles/INTERPERTER:1;/cm/shared/common_software_stack/modulefiles/APPLICATION:1;/cm/shared/common_software_stack/modulefiles/TOOLS:1;/cm/shared/common_software_stack/modulefiles/CONDA:1
+PWD=/gpfs1/scratch/xzhu24/pure_vqe/6qubits/hea
+ENABLE_LMOD=1
+SSH_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass
+SLURM_JOB_NODELIST=hpcnode003
+HOME=/home/xzhu24
+SLURM_CLUSTER_NAME=burgundy
+LC_CTYPE=en_US.UTF8
+LMOD_COLORIZE=yes
+SLURM_NODELIST=hpcnode003
+SSH_CLIENT=144.214.0.13 49565 22
+LMOD_VERSION=8.7
+CPATH=/cm/shared/common_software_stack/apps/programming/interperters/python/3.10.2/include:/cm/shared/apps/slurm/current/include::
+SLURM_NTASKS=1
+LMOD_SETTARG_CMD=:
+https_proxy=http://proxy.cityu.edu.hk:8080/
+KRB5CCNAME=FILE:/tmp/krb5cc_90679661_jQR8xd
+SLURM_JOB_CPUS_PER_NODE=16
+BASH_ENV=/usr/share/lmod/lmod/init/bash
+XDG_DATA_DIRS=/home/xzhu24/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
+SLURM_TOPOLOGY_ADDR=hpcnode003
+http_proxy=http://proxy.cityu.edu.hk:8080/
+SLURM_WORKING_CLUSTER=burgundy:hpchead001:6817:9984:109
+__LMOD_REF_COUNT_LIBRARY_PATH=/cm/shared/common_software_stack/apps/programming/interperters/python/3.10.2/lib:1;/cm/shared/apps/slurm/current/lib64/slurm:2;/cm/shared/apps/slurm/current/lib64:2
+SLURM_JOB_NAME=queue_vqe_hva.sh
+TMPDIR=/tmp
+LIBRARY_PATH=/cm/shared/common_software_stack/apps/programming/interperters/python/3.10.2/lib:/cm/shared/apps/slurm/current/lib64/slurm:/cm/shared/apps/slurm/current/lib64::
+LMOD_sys=Linux
+SLURM_JOBID=1142508
+_ModuleTable001_=X01vZHVsZVRhYmxlXyA9IHsKTVR2ZXJzaW9uID0gMywKY19yZWJ1aWxkVGltZSA9IGZhbHNlLApjX3Nob3J0VGltZSA9IGZhbHNlLApkZXB0aFQgPSB7fSwKZmFtaWx5ID0ge30sCm1UID0gewpEZWZhdWx0TW9kdWxlcyA9IHsKZm4gPSAiL2NtL3NoYXJlZC9tb2R1bGVmaWxlcy9EZWZhdWx0TW9kdWxlcy5sdWEiLApmdWxsTmFtZSA9ICJEZWZhdWx0TW9kdWxlcyIsCmxvYWRPcmRlciA9IDIsCnByb3BUID0ge30sCnN0YWNrRGVwdGggPSAwLApzdGF0dXMgPSAiYWN0aXZlIiwKdXNlck5hbWUgPSAiRGVmYXVsdE1vZHVsZXMiLAp3ViA9ICJNLip6ZmluYWwiLAp9LApbImNhbHZpbi1ib290c3RyYXAiXSA9IHsKZm4gPSAiL2hvbWUveHpodTI0L1NIQVJFL21vZHVsZWZpbGVzL2Nh
+SLURM_CONF=/cm/shared/apps/slurm/var/etc/Burgundy/slurm.conf
+LOADEDMODULES=shared:DefaultModules:gcc/9.3.0:slurm:python/3.10.2:calvin-bootstrap
+LMOD_AVAIL_STYLE=en_grouped
+__LMOD_REF_COUNT_MANPATH=/cm/shared/common_software_stack/apps/programming/interperters/python/3.10.2/share/man:1;/cm/shared/apps/slurm/current/man:2;/usr/share/lmod/lmod/share/man:1;/usr/local/share/man:1;/usr/share/man:1;/cm/local/apps/environment-modules/current/share/man:1
+_ModuleTable006_=bS9zaGFyZWQvY29tbW9uX3NvZnR3YXJlX3N0YWNrL21vZHVsZWZpbGVzL1RPT0xTIiwgIi9jbS9zaGFyZWQvY29tbW9uX3NvZnR3YXJlX3N0YWNrL21vZHVsZWZpbGVzL0NPTkRBIiwKfSwKc3lzdGVtQmFzZU1QQVRIID0gIi9jbS9zaGFyZWQvbW9kdWxlZmlsZXMiLAp9Cg==
+_ModuleTable003_=ICIvY20vc2hhcmVkL2NvbW1vbl9zb2Z0d2FyZV9zdGFjay9tb2R1bGVmaWxlcy9JTlRFUlBFUlRFUi9weXRob24vMy4xMC4yIiwKZnVsbE5hbWUgPSAicHl0aG9uLzMuMTAuMiIsCmxvYWRPcmRlciA9IDUsCnByb3BUID0ge30sCnN0YWNrRGVwdGggPSAxLApzdGF0dXMgPSAiYWN0aXZlIiwKdXNlck5hbWUgPSAicHl0aG9uLzMuMTAuMiIsCndWID0gIjAwMDAwMDAwMy4wMDAwMDAwMTAuMDAwMDAwMDAyLip6ZmluYWwiLAp9LApzaGFyZWQgPSB7CmZuID0gIi9jbS9zaGFyZWQvbW9kdWxlZmlsZXMvc2hhcmVkIiwKZnVsbE5hbWUgPSAic2hhcmVkIiwKbG9hZE9yZGVyID0gMSwKcHJvcFQgPSB7fSwKc3RhY2tEZXB0aCA9IDEsCnN0YXR1cyA9ICJhY3RpdmUiLAp1c2VyTmFtZSA9
+SLURM_NODE_ALIASES=(null)
+SLURM_JOB_QOS=normal
+LMOD_ROOT=/usr/share/lmod
+SLURM_TOPOLOGY_ADDR_PATTERN=node
+SSH_TTY=/dev/pts/63
+rvm_path=/usr/local/rvm
+MAIL=/var/spool/mail/xzhu24
+SLURM_CPUS_ON_NODE=16
+LMOD_arch=x86_64
+SLURM_JOB_NUM_NODES=1
+__Init_Default_Modules=1
+SLURM_MEM_PER_NODE=61440
+CMD_WLM_CLUSTER_NAME=Burgundy
+SHELL=/bin/bash
+TERM=xterm
+socks_proxy=http://proxy.cityu.edu.hk:8080/
+SLURM_JOB_UID=90679661
+_ModuleTable_Sz_=6
+__LMOD_REF_COUNT_CPATH=/cm/shared/common_software_stack/apps/programming/interperters/python/3.10.2/include:1;/cm/shared/apps/slurm/current/include:2
+SLURM_JOB_PARTITION=special_mne_alicehu
+SLURM_SCRIPT_CONTEXT=prolog_task
+TMOUT=10800
+rvm_prefix=/usr/local
+SLURM_JOB_USER=xzhu24
+SLURM_NPROCS=1
+SHLVL=2
+SLURM_SUBMIT_HOST=hpclogin02
+SLURM_JOB_ACCOUNT=ga_mne_alicehu
+MANPATH=/cm/shared/common_software_stack/apps/programming/interperters/python/3.10.2/share/man:/cm/shared/apps/slurm/current/man:/usr/share/lmod/lmod/share/man:/usr/local/share/man:/usr/share/man:/cm/local/apps/environment-modules/current/share/man::
+ESPRESSO_PSEUDO=/home/xzhu24/SHARE/pseudo_dir
+LMOD_PREPEND_BLOCK=normal
+MODULEPATH=/home/xzhu24/modulefiles:/home/xzhu24/SHARE/modulefiles:/cm/shared/modulefiles/essential:/cm/shared/modulefiles/compiler:/cm/shared/modulefiles/library:/cm/shared/modulefiles/mpi:/cm/shared/common_software_stack/modulefiles/COMPILER:/cm/shared/common_software_stack/modulefiles/MPI:/cm/shared/common_software_stack/modulefiles/IO:/cm/shared/common_software_stack/modulefiles/MATHS:/cm/shared/common_software_stack/modulefiles/INTERPERTER:/cm/shared/common_software_stack/modulefiles/APPLICATION:/cm/shared/common_software_stack/modulefiles/TOOLS:/cm/shared/common_software_stack/modulefiles/CONDA
+SLURM_GTIDS=0
+LOGNAME=xzhu24
+DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/90679661/bus
+XDG_RUNTIME_DIR=/run/user/90679661
+MODULEPATH_ROOT=/cm/shared/modulefiles
+LMOD_PACKAGE_PATH=/cm/shared/common_software_stack/modulefiles/sitepackages
+PATH=/home/xzhu24/.local/bin/:/home/xzhu24/SHARE/apps/bin:/cm/shared/common_software_stack/apps/programming/interperters/python/3.10.2/bin:/cm/shared/apps/slurm/current/sbin:/cm/shared/apps/slurm/current/bin:/cm/shared/apps/compiler/gcc/9.3.0/bin:/home/xzhu24/.local/bin:/home/xzhu24/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/usr/local/rvm/bin:/usr/lpp/mmfs/bin:/cm/shared/apps/firefox
+SLURM_JOB_ID=1142508
+_LMFILES_=/cm/shared/modulefiles/shared:/cm/shared/modulefiles/DefaultModules.lua:/cm/shared/modulefiles/compiler/gcc/9.3.0:/cm/shared/modulefiles/essential/slurm:/cm/shared/common_software_stack/modulefiles/INTERPERTER/python/3.10.2:/home/xzhu24/SHARE/modulefiles/calvin-bootstrap
+MODULESHOME=/usr/share/lmod/lmod
+LMOD_SETTARG_FULL_SUPPORT=no
+HISTSIZE=1000
+LMOD_PKG=/usr/share/lmod/lmod
+LMOD_CMD=/usr/share/lmod/lmod/libexec/lmod
+_ModuleTable005_=bGlicmFyeSIsICIvY20vc2hhcmVkL21vZHVsZWZpbGVzL21waSIKLCAiL2NtL3NoYXJlZC9jb21tb25fc29mdHdhcmVfc3RhY2svbW9kdWxlZmlsZXMvQ09NUElMRVIiCiwgIi9jbS9zaGFyZWQvY29tbW9uX3NvZnR3YXJlX3N0YWNrL21vZHVsZWZpbGVzL01QSSIKLCAiL2NtL3NoYXJlZC9jb21tb25fc29mdHdhcmVfc3RhY2svbW9kdWxlZmlsZXMvSU8iCiwgIi9jbS9zaGFyZWQvY29tbW9uX3NvZnR3YXJlX3N0YWNrL21vZHVsZWZpbGVzL01BVEhTIgosICIvY20vc2hhcmVkL2NvbW1vbl9zb2Z0d2FyZV9zdGFjay9tb2R1bGVmaWxlcy9JTlRFUlBFUlRFUiIKLCAiL2NtL3NoYXJlZC9jb21tb25fc29mdHdhcmVfc3RhY2svbW9kdWxlZmlsZXMvQVBQTElDQVRJT04iCiwgIi9j
+SLURM_LOCALID=0
+LESSOPEN=||/usr/bin/lesspipe.sh %s
+LMOD_FULL_SETTARG_SUPPORT=no
+LMOD_DIR=/usr/share/lmod/lmod/libexec
+BASH_FUNC_module%%=() {  local __lmod_my_status;
+ local __lmod_sh_dbg;
+ if [ -z "${LMOD_SH_DBG_ON+x}" ]; then
+ case "$-" in 
+ *v*x*)
+ __lmod_sh_dbg='vx'
+ ;;
+ *v*)
+ __lmod_sh_dbg='v'
+ ;;
+ *x*)
+ __lmod_sh_dbg='x'
+ ;;
+ esac;
+ fi;
+ if [ -n "${__lmod_sh_dbg:-}" ]; then
+ set +$__lmod_sh_dbg;
+ echo "Shell debugging temporarily silenced: export LMOD_SH_DBG_ON=1 for Lmod's output" 1>&2;
+ fi;
+ eval "$($LMOD_CMD bash "$@")" && eval $(${LMOD_SETTARG_CMD:-:} -s sh);
+ __lmod_my_status=$?;
+ if [ -n "${__lmod_sh_dbg:-}" ]; then
+ echo "Shell debugging restarted" 1>&2;
+ set -$__lmod_sh_dbg;
+ fi;
+ return $__lmod_my_status
+}
+BASH_FUNC_ml%%=() {  eval "$($LMOD_DIR/ml_cmd "$@")"
+}
+_=/usr/bin/env
