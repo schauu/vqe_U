@@ -19,7 +19,14 @@ for i in range(n):
 
 H_tfim = qml.Hamiltonian(coeffs, ops)
 H_mat = qml.matrix(H_tfim)
+# Step 5: Exact Ground State Calculation using NumPy's linalg.eig
+eigenvalues, eigenvectors = np.linalg.eig(H_mat)
 
+min_index = np.argmin(eigenvalues)
+min_eigenvalue = eigenvalues[min_index]
+min_eigenvector = eigenvectors[:, min_index]
+
+H_mat -= min_eigenvalue * np.eye(2**n)
 # Step 2: LCU form of cos^{2m}(H)
 m = 10
 k_vals = np.arange(-m, m + 1)
@@ -38,10 +45,6 @@ dev = qml.device("default.qubit", wires=n + n_control)
 
 @qml.qnode(dev)
 def circuit():
-    # Prepare nontrivial input eigenstate (Hadamard on all qubits)
-    # for i in range(n):
-    #     qml.Hadamard(i)
-
     # Apply Qubitization to create the state
     qml.Qubitization(cos2m_op, control=control_wires)
 
@@ -57,12 +60,7 @@ state_vector/=np.linalg.norm(state_vector)
 circuit_diagram = qml.draw_mpl(circuit, style='pennylane')
 print(circuit_diagram())
 
-# Step 5: Exact Ground State Calculation using NumPy's linalg.eig
-eigenvalues, eigenvectors = np.linalg.eig(H_mat)
 
-min_index = np.argmin(eigenvalues)
-min_eigenvalue = eigenvalues[min_index]
-min_eigenvector = eigenvectors[:, min_index]
 # Print results
 # print("Exact ground state (via NumPy):", min_eigenvector)
 # print("Qubitization state vector:", state_vector)
