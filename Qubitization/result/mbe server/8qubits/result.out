@@ -1,0 +1,6 @@
+/home/xzhu24/.local/lib/python3.10/site-packages/pennylane/ops/op_math/controlled_ops.py:41: PennyLaneDeprecationWarning: The control_wires input to ControlledQubitUnitary is deprecated and will be removed in v0.42. Please note that the second positional arg of your input is going to be the new wires, following wires=controlled_wires+target_wires, where target_wires is the optional arg wires in the legacy interface.
+  warnings.warn(
+Traceback (most recent call last):
+  File "/gpfs1/scratch/xzhu24/lcu/8qubits/run.py", line 156, in <module>
+    main()
+NameError: name 'main' is not defined. Did you mean: 'min'?
