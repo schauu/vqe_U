@@ -193,7 +193,7 @@ plt.xticks(m_vals)
 plt.ylabel("Fidelity with Ground State")
 plt.title("Fidelity vs. m")
 plt.legend()
-plt.grid(True)
+#plt.grid(True)
 plt.show()
 # plt.savefig("fidelity_vs_m.png", dpi=600)
 #

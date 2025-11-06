@@ -14,7 +14,7 @@ from qiskit_aer import AerSimulator
 from qiskit_aer.primitives import EstimatorV2, SamplerV2
 from qiskit_aer.noise import NoiseModel, depolarizing_error
 from qiskit_algorithms import TimeEvolutionProblem, TrotterQRTE
-
+import pennylane as qml
 
 def get_hamiltonian(nq, J):
     op_list = [("ZZ", [i, i + 1], J) for i in range(nq - 1)]
