@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-
+#  Environment configuration
+# ============================================================
+#  Python version        : 3.10
+#  qiskit                : 1.0.2
+#  qiskit_aer            : 0.14.1
+#  qiskit_algorithms    : 0.3.0
+#  NumPy                 : 1.26.4
+#  SciPy                 : 1.15.3
+#  Matplotlib            : 3.10.7
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
