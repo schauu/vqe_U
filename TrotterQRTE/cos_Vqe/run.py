@@ -7,7 +7,8 @@ import scipy.linalg
 from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.primitives import Estimator
+#from qiskit.primitives import Estimator
+from qiskit_ibm_runtime import QiskitRuntimeService, EstimatorV2 as Estimator
 from qiskit.quantum_info import Operator, SparsePauliOp, Statevector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential
 from qiskit_aer import AerSimulator

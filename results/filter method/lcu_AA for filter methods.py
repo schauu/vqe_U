@@ -3,11 +3,10 @@ import pennylane as qml
 from scipy.linalg import expm
 import math
 import matplotlib.pyplot as plt
-plt.style.use('pennylane.drawer.plot')
 
 
 # =====================================================
-# 1. TFIM Hamiltonian
+# 1. TFIM Hamiltonian + 辅助函数
 # =====================================================
 def kron_n(op_list):
     r = np.array([[1]])
@@ -36,7 +35,7 @@ def get_ground_state(H):
 
 
 # =====================================================
-# 2. LCU
+# 2. LCU 构造
 # =====================================================
 def build_lcu_data(H_shifted, n, m, eps=1e-4):
     dim = 2**n
@@ -56,7 +55,7 @@ def build_lcu_data(H_shifted, n, m, eps=1e-4):
 
 
 # =====================================================
-# 3.  U = LCUPrepare，O = Oracle
+# 3. 定义 U = LCUPrepare，O = Oracle
 # =====================================================
 @qml.prod
 def LCUPrepare_op(weights, U_ops, anc_wires, sys_wires):
@@ -70,107 +69,97 @@ def LCUPrepare_op(weights, U_ops, anc_wires, sys_wires):
     )
     qml.adjoint(qml.StatePrep)(weights, wires=anc_wires)
 
+# @qml.prod
+# def prepare_init(n):
+#     for i in range(n):
+#         qml.Hadamard(wires=i)
+
 @qml.prod
 def Oracle_op(weights, U_ops, anc_wires, sys_wires):
+    """蓝色块：A → FlipSign(anc=0) → A†"""
+    #LCUPrepare_op(weights, U_ops, anc_wires, sys_wires)
     qml.FlipSign(n=0, wires=anc_wires)
+    #qml.adjoint(LCUPrepare_op)(weights, U_ops, anc_wires, sys_wires)
 
 
 # =====================================================
-# 4. Amplitude Amplification
+# 4. 主过程：Amplitude Amplification
 # =====================================================
 def run_AA_LCU(n=4, m=6, R=1):
-
+    """运行一次 amplitude amplification for LCU"""
     H = tfim_model(n)
     Hs = shift_and_normalize_H(H)
     gs = get_ground_state(Hs)
 
     weights, U_ops, n_anc = build_lcu_data(Hs, n, m)
+    #print('Weights:', weights)
+    #print('U_ops:', U_ops)
     anc = list(range(n_anc))
     sys = list(range(n_anc, n_anc+n))
     all_wires = anc + sys
+    #dev = qml.device("default.qubit", wires=len(all_wires)+1, shots=None)
     dev = qml.device("default.qubit")
     @qml.qnode(dev)
     def circuit(iters):
-
+        # for i in range(n):
+        #     qml.Hadamard(wires=i)
         LCUPrepare_op(weights, U_ops, anc, sys)
         qml.AmplitudeAmplification(
             U = LCUPrepare_op(weights, U_ops, anc, sys),
             #U = prepare_init(n),
             O = Oracle_op(weights, U_ops, anc, sys),
             iters = iters,
-            fixed_point=True,
-            work_wire=len(all_wires),
+            fixed_point=False,
+            #work_wire=len(all_wires)+1,
         )
-        return qml.probs(wires=all_wires)
-        #return qml.state()
+        return qml.state()
     #qml.draw_mpl(circuit)(R)[0].show()
-
-    prob = circuit(R)
-    return prob
-    # psi = circuit(R)  # → full statevector (2^(n_anc+n+1)维)
-    #
-    # # 但最后 workspace qubit 始终在 |0>，我们忽略掉最后一个 wire
-    # psi = psi.reshape((2, 2 ** len(all_wires)))[0]  # keep workspace=0
-    #
-    # # reshape 到 (ancilla_dim, system_dim)
-    # anc_dim = 2 ** n_anc
-    # sys_dim = 2 ** n
-    # psi2 = psi.reshape((anc_dim, sys_dim))
-    #
-    # # --- success probability ---
-    # system_unnorm = psi2[0]  # ancilla = |0...0>
-    # success_prob = np.sum(np.abs(system_unnorm) ** 2)
-    #
-    # # --- fidelity ---
-    # if success_prob > 1e-12:
-    #     system_state = system_unnorm / np.sqrt(success_prob)
-    #     fidelity = np.abs(system_state.conj() @ gs) ** 2
-    # else:
-    #     fidelity = 0.0
-    #
-    # return success_prob, fidelity, psi
+    psi = circuit(R)
+    psi = psi.reshape((2**n_anc, 2**n))
+    #psi = psi.reshape((2 ** (n_anc+1), 2 ** n))
+    sys_amp = psi[0, :]
+    #print('System state', sys_amp)
+    success_prob = np.real(np.vdot(sys_amp, sys_amp))
+    #success_prob = np.linalg.norm(sys_amp)
+    normed = sys_amp / np.linalg.norm(sys_amp) if np.linalg.norm(sys_amp) > 0 else sys_amp
+    fid = np.abs(np.vdot(normed, gs))**2
+    return fid, success_prob
 
 
-
-# =====================================================
-# 5. test
-# =====================================================
-# if __name__ == "__main__":
-#     fig, axs = plt.subplots(2, 2, figsize=(14, 10))
-#     for i in range(0,10,2):
-#         output = run_AA_LCU(n=4, m=6, R=i)
-#         ax = axs[i // 4, i // 2 % 2]
-#         ax.bar(range(len(output)), output)
-#         ax.set_ylim(0, 0.6)
-#         ax.set_title(f"Iteration {i}")
-#
-#     plt.tight_layout()
-#     plt.subplots_adjust(bottom=0.1)
-#     plt.axhline(0, color='black', linewidth=1)
-#     plt.show()
 
 if __name__ == "__main__":
-    R_list = [0, 1, 3, 5, 7, 9]       # 指定要跑的迭代次数
-    fig, axs = plt.subplots(2, 3, figsize=(15, 8))
-    axs = axs.flatten()               # 把 2×3 的 axes 摊平方便索引
+    R_list = list(range(11))
+    fidelities = []
+    success_probs = []
 
-    for i, R in enumerate(R_list):
-        output = run_AA_LCU(n=4, m=6, R=R)
-        ax = axs[i]
-        ax.bar(range(len(output)), output)
-        ax.set_ylim(0, 0.3)
-        ax.set_title(f"Iteration R = {R}")
-        ax.axhline(0, color='black', linewidth=1)
-    # for i, R in enumerate(R_list):
-    #     success_prob, fidelity, psi = run_AA_LCU(n=4, m=1, R=R)
-    #     probs = np.abs(psi) ** 2
-    #
-    #     ax = axs[i]
-    #     ax.bar(range(len(probs)), probs)
-    #     ax.set_ylim(0, 0.3)
-    #     ax.set_title(f"R={R}\nSuccess={success_prob:.3f}\nFidelity={fidelity:.3f}")
+    print("R | Fidelity | Success Prob")
+    print("-"*32)
 
-    plt.tight_layout()
+    for R in R_list:
+        fid, p = run_AA_LCU(n=4, m=6, R=R)
+        fidelities.append(fid)
+        success_probs.append(p)
+        print(f"{R:>2d} | {fid:8.4f} | {p:10.4f}")
+
+    # === 绘图 ===
+    fig, ax1 = plt.subplots(figsize=(8, 5))
+
+    ax1.plot(R_list, fidelities, marker='o', label="Fidelity", color='tab:orange')
+    ax1.set_xlabel("Iteration R")
+    ax1.set_ylabel("Fidelity", color='tab:orange')
+    ax1.tick_params(axis='y', labelcolor='tab:orange')
+    ax1.set_ylim(0, 1.05)
+
+    # 第二个坐标轴绘制成功概率
+    ax2 = ax1.twinx()
+    ax2.plot(R_list, success_probs, marker='s', label="Success Probability", color='tab:blue')
+    ax2.set_ylabel("Success Probability", color='tab:blue')
+    ax2.tick_params(axis='y', labelcolor='tab:blue')
+    ax2.set_ylim(0, 1.05)
+
+    # 图例
+    fig.legend(loc='lower right', bbox_to_anchor=(0.9, 0.05))
+    fig.tight_layout()
+    #plt.title("Amplitude Amplification Performance vs Iteration")
     plt.show()
-
 
