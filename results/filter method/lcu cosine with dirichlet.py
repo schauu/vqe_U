@@ -255,8 +255,66 @@ def cosine_dirichlet_qc(H_shifted, N1, N2):
 
     return fidelity
 
+
+def dirichlet_reduced(H_shifted1, max_N):
+    k_vals_full = np.arange(-max_N, max_N + 1)
+    alpha_k = np.array([1 / (2 * max_N + 1) for k in np.arange(-max_N, 1)])
+    beta_k = np.array([1 / (2 * max_N + 1) for k in np.arange(1, max_N + 1)])
+
+    pad_len = 2 ** int(np.ceil(np.log2(len(k_vals_full))))
+
+
+    alpha_padded = np.zeros(pad_len)
+    alpha_padded[:max_N + 1] = alpha_k
+    alpha_padded[int(pad_len / 2 + 1):int(pad_len / 2 + 1 + max_N)] = beta_k
+
+    weights = np.sqrt(alpha_padded / np.sum(alpha_padded))
+
+    # #print('weights:', weights)
+    n_anc = int(np.log2(pad_len))
+    ancilla_wires = list(range(n_anc))
+    system_wires = list(range(n_anc, n_anc + n))
+    dev = qml.device("default.qubit", wires=n + n_anc)
+
+    @qml.qnode(dev)
+    def block_encoding():
+        # for i in system_wires:
+        #     qml.Hadamard(i)
+        # for i in range(n_anc, n+n_anc, 2):
+        #     qml.X(i)
+        qml.StatePrep(weights, wires=range(n_anc))
+        for l in range(1, n_anc):
+            qml.ControlledQubitUnitary(
+                expm(2.0j * 2 ** l * H_shifted1),
+                wires=[0, l] + system_wires,
+                control_values=[0, 1],  # sigma=0, anc_l=1
+
+            )
+
+            # --- 施加 Controlled-U^(-k) (对应图中 sigma=1, 即实心点) ---
+            # 控制条件: sigma=1 AND anc_l=1
+            qml.ControlledQubitUnitary(
+                expm(-2.0j * 2 ** l * H_shifted1),
+                wires=[0, l] + system_wires,
+                control_values=[1, 1],  # sigma=1, anc_l=1
+
+            )
+        qml.adjoint(qml.StatePrep)(weights, wires=range(n_anc))
+        return qml.state()
+
+    full_state = block_encoding()
+    reshaped = full_state.reshape((2 ** n_anc, 2 ** n))
+    system_state = reshaped[0, :]
+    be_state = system_state
+
+    be_state /= np.linalg.norm(be_state)
+    fidelity = np.abs(np.vdot(be_state, ground_state)) ** 2
+    return fidelity
+
+
+
 # # 扫描 m
-max_N = 30
+max_N = 10
 # m_vals = list(range(1, max_N + 1))
 # fidelity_cosine, success_cosine = zip(*[fidelity_block_encoding(m) for m in list(range(1, max_N+1))])#list(range(1, max_N//2 + 1))])
 #
@@ -294,7 +352,11 @@ for m_vals in range(1, max_N+1):
     fidelity = cosine_dirichlet_qc(H_shifted, m_vals, m_vals)
     fidelity_both_qc.append(fidelity)
 
-
+fidelity_reduced = []
+H_shifted = shift_and_normalize_H(H)
+for m_vals in range(1, max_N+1):
+    fidelity = dirichlet_reduced(H_shifted, m_vals)
+    fidelity_reduced.append(fidelity)
 #cosine_dirichlet_qc(H, 30, 30)
 # #plt.plot(N_list, fidelity_be, marker='s', label='Dirichlet kernel QC')
 #
@@ -307,6 +369,8 @@ plt.plot(list(range(1, max_N+1)), fidelity_cos_list, label='Cosine numerical')
 plt.plot(range(1, max_N+1), fidelity_both_list, label='Dirichlet + Cosine numerical')
 
 plt.plot(range(1, max_N+1), fidelity_both_qc, label='Dirichlet + Cosine QC')
+
+plt.plot(range(1, max_N+1), fidelity_reduced, label='Dirichlet reduced qc')
 #
 plt.xlabel("M")
 plt.xticks(list(range(0, max_N + 1)))
