@@ -164,6 +164,9 @@ def evaluate_fidelity(filter_matrix, init_state, H_shifted):
     #return np.linalg.norm(psi-ground_state)**2
     #return float(np.real_if_close(np.vdot(psi, H_shifted@psi)))
 
+def evaluate_success(filter_matrix, init_state, H_shifted):
+    psi = filter_matrix @ init_state
+    return np.abs(np.vdot(psi, psi)) ** 2
 
 
 # 扫描 m
@@ -183,6 +186,13 @@ for N_iter in range(1, max_N + 1):
     fidelity_custom = evaluate_fidelity(fH, init_state, H)
     fidelity_list.append(fidelity_custom)
 
+success_list = []
+for N_iter in range(1, max_N + 1):
+    H_shifted = shift_and_normalize_H1(H)
+    fH = custom_filter_matrix(H_shifted, N_iter)
+    fidelity_custom = evaluate_success(fH, init_state, H)
+    success_list.append(fidelity_custom)
+
 fidelity_cos_list = []
 for m_vals in range(1,max_N+1):
     H_shifted = shift_and_normalize_H(H)
@@ -190,6 +200,12 @@ for m_vals in range(1,max_N+1):
     fidelity_cos = evaluate_fidelity(cos_filter, init_state, H)
     fidelity_cos_list.append(fidelity_cos)
 
+success_cos_list = []
+for m_vals in range(1,max_N+1):
+    H_shifted = shift_and_normalize_H(H)
+    cos_filter = cosine_filter_matrix(H_shifted, m_vals)
+    fidelity_cos = evaluate_success(cos_filter, init_state, H)
+    success_cos_list.append(fidelity_cos)
 
 plt.plot(N_list, fidelity_be, marker='s', label='Dirichlet kernel QC')
 #plt.plot(list(range(1, max_N + 1, 2)), fidelity_cosine, marker='s', label='Cosine filter')
@@ -199,11 +215,14 @@ plt.plot(range(1, max_N + 1), fidelity_list, label="Dirichlet kernel numerical")
 #plt.axhline(y=fidelity_cos, color='r', linestyle='--', label="cos^{2m}(H) Fidelity")
 plt.plot(list(range(1, max_N+1)), fidelity_cos_list, label='Cosine kernel numerical')
 
+plt.plot(range(1, max_N + 1), success_list, label="Dirichlet kernel numerical success")
+plt.plot(range(1, max_N + 1), success_cos_list, label="Cosine numerical success")
+
 plt.xlabel("M")
 plt.xticks(list(range(0, max_N + 1)))
 plt.ylabel("Fidelity with Ground State")
 #plt.title("Fidelity vs. m")
 plt.legend()
 #plt.grid(True)
-plt.savefig("cosine compare with dirichlet n6.png")
+#plt.savefig("cosine compare with dirichlet n6.png")
 plt.show()

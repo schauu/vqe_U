@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-
+from itertools import zip_longest
 import numpy as np
 import pennylane as qml
 from scipy.linalg import expm
 import matplotlib.pyplot as plt
 import math
+import time
 
 
-n = 4
+n = 8
 dim = 2 ** n
 
 def get_ground_state(H):
@@ -54,7 +55,7 @@ def tfim_model(n):
     return H
 
 
-
+start_time = time.time()
 # 归一化并 shift
 H = tfim_model(n)
 H_shifted = shift_and_normalize_H(H)
@@ -74,6 +75,13 @@ eigvals, eigvecs = np.linalg.eigh(H)
     # compute overlaps |<E_k | psi_0>|^2
 overlaps = np.abs(eigvecs.conj().T @ init_state)**2
 H_shifted1 = shift_and_normalize_H(H)
+eigvals, eigvecs = np.linalg.eigh(H_shifted1)
+
+def fast_expm(k):
+    # 利用公式：exp(i * k * VΛV†) = V * exp(i * k * Λ) * V†
+    # 其中 Λ 是对角阵，计算指数只需对角元素求指数，极快且精确
+    phase = np.exp(2.0j * k * eigvals)
+    return (eigvecs * phase) @ eigvecs.conj().T
 def dirichlet_block_encoding(max_N):
     k_vals_full = np.arange(-max_N, max_N + 1)
     alpha_k = np.array([1/(2* max_N + 1) for k in k_vals_full])
@@ -87,15 +95,15 @@ def dirichlet_block_encoding(max_N):
     n_anc = int(np.log2(pad_len))
     ancilla_wires = list(range(n_anc))
     system_wires = list(range(n_anc, n_anc + n))
-    U_list = [expm(-2.0j * k * H_shifted1) for k in k_vals_full]
+    U_list = [fast_expm(k) for k in k_vals_full]
     U_list += [np.eye(dim)] * (pad_len - len(U_list))
     U_ops = [qml.QubitUnitary(U, wires=range(n_anc, n_anc + n)) for U in U_list]
     dev = qml.device("default.qubit", wires=n + n_anc)
 
     @qml.qnode(dev)
     def block_encoding():
-        for i in system_wires:
-            qml.Hadamard(i)
+        # for i in system_wires:
+        #     qml.Hadamard(i)
         # for i in range(n_anc, n+n_anc, 2):
         #     qml.X(i)
         qml.StatePrep(weights, wires=range(n_anc))
@@ -131,7 +139,8 @@ def fidelity_block_encoding(m):
     n_anc = int(np.log2(pad_len))
     ancilla_wires = list(range(n_anc))
     system_wires = list(range(n_anc, n_anc + n))
-    U_list = [expm(2j * k * H_shifted) for k in k_vals]
+    #U_list = [expm(2j * k * H_shifted) for k in k_vals]
+    U_list = [fast_expm(k) for k in k_vals_full]
     U_list += [np.eye(dim)] * (pad_len - len(U_list))
     U_ops = [qml.QubitUnitary(U, wires=range(n_anc, n_anc + n)) for U in U_list]
     dev = qml.device("default.qubit", wires=n + n_anc)
@@ -166,17 +175,17 @@ def cosine_filter_matrix1(H, m):
     cosH = 0.5 * (U + U_dag)
     return np.linalg.matrix_power(cosH, 2*m)
 
-def cosine_filter_matrix(H, m):
-    U = expm(1j * H)
-    U_dag = expm(-1j * H)
-    cosH = 0.5 * (U + U_dag)
-    return np.linalg.matrix_power(cosH, 4*m)
+# def cosine_filter_matrix(H, m):
+#     U = expm(1j * H)
+#     U_dag = expm(-1j * H)
+#     cosH = 0.5 * (U + U_dag)
+#     return np.linalg.matrix_power(cosH, 4*m)
 
 def custom_filter_matrix1(H, N):
     return 1/(2*N+1) * sum(expm(-2j * H * i) for i in range(-N, N + 1))
 
-def custom_filter_matrix(H, N):
-    return 1/(2*N+1) * sum(expm(-2j * H * i) for i in range(-2*N, 2*N + 1))
+# def custom_filter_matrix(H, N):
+#     return 1/(2*N+1) * sum(expm(-2j * H * i) for i in range(-2*N, 2*N + 1))
 
 def evaluate_fidelity(filter_matrix, init_state, H_shifted):
     psi = filter_matrix @ init_state
@@ -220,11 +229,11 @@ def cosine_dirichlet_qc(H_shifted, N1, N2):
     weights = np.kron(weights1, weights)
     n_anc2 = int(np.log2(pad_len_beta))
 
-    U_list = [expm(2j * k * H_shifted) for k in k_vals]
+    U_list = [fast_expm(k) for k in k_vals]
     U_list += [np.eye(dim)] * (pad_len - len(U_list))
     U_ops = [qml.QubitUnitary(U, wires=range(n_anc+n_anc2, n_anc + n_anc2+ n)) for U in U_list]
 
-    U_list_diri = [expm(2j * i * H_shifted) for i in j_vals_full]
+    U_list_diri = [fast_expm(i) for i in j_vals_full]
     U_list_diri += [np.eye(dim)] * (pad_len_beta - len(U_list_diri))
     U_ops_diri = [qml.QubitUnitary(U, wires=range(n_anc+n_anc2, n_anc + n_anc2+ n)) for U in U_list_diri]
     dev = qml.device("default.qubit", wires=n + n_anc + n_anc2)
@@ -256,7 +265,7 @@ def cosine_dirichlet_qc(H_shifted, N1, N2):
     return fidelity
 
 
-def dirichlet_reduced(H_shifted1, max_N):
+def dirichlet_reduced1(H_shifted1, max_N):
     k_vals_full = np.arange(-max_N, max_N + 1)
     alpha_k = np.array([1 / (2 * max_N + 1) for k in np.arange(-max_N, 1)])
     beta_k = np.array([1 / (2 * max_N + 1) for k in np.arange(1, max_N + 1)])
@@ -285,7 +294,8 @@ def dirichlet_reduced(H_shifted1, max_N):
         qml.StatePrep(weights, wires=range(n_anc))
         for l in range(1, n_anc):
             qml.ControlledQubitUnitary(
-                expm(2.0j * 2 ** l * H_shifted1),
+                #expm(2.0j * 2 ** l * H_shifted1),
+                fast_expm(2**l),
                 wires=[0, l] + system_wires,
                 control_values=[0, 1],  # sigma=0, anc_l=1
 
@@ -294,7 +304,8 @@ def dirichlet_reduced(H_shifted1, max_N):
             # --- 施加 Controlled-U^(-k) (对应图中 sigma=1, 即实心点) ---
             # 控制条件: sigma=1 AND anc_l=1
             qml.ControlledQubitUnitary(
-                expm(-2.0j * 2 ** l * H_shifted1),
+                #expm(-2.0j * 2 ** l * H_shifted1),
+                fast_expm(-2 ** l),
                 wires=[0, l] + system_wires,
                 control_values=[1, 1],  # sigma=1, anc_l=1
 
@@ -311,80 +322,302 @@ def dirichlet_reduced(H_shifted1, max_N):
     fidelity = np.abs(np.vdot(be_state, ground_state)) ** 2
     return fidelity
 
+def dirichlet_reduced(H_shifted1, max_N):
+    n_anc = int(np.ceil(np.log2(max_N+1))) + 1
+    pad_len = 2 ** n_anc
 
+    alpha_padded = np.zeros(pad_len)
+
+    # NOTE: bit #0 is the sigma bit
+    # NOTE: bit #1 to bit #n_anc-1 is the index
+
+    # slower version but clearer
+    for i in range(max_N+1):
+        alpha_padded[2*i+0] = 1 / (2 * max_N + 1)
+        if i != 0:
+            alpha_padded[2*i+1] = 1 / (2 * max_N + 1)
+
+    # faster version
+    # alpha_padded[:2*(max_N+1)] = 1 / (2 * max_N+1)
+    # alpha_padded[1] = 0
+
+    weights = np.sqrt(alpha_padded / np.sum(alpha_padded))
+    ancilla_wires = list(range(n_anc))
+    system_wires = list(range(n_anc, n_anc + n))
+    dev = qml.device("default.qubit", wires=n + n_anc)
+
+    @qml.qnode(dev)
+    def block_encoding():
+        qml.StatePrep(weights, wires=range(n_anc))
+        # NOTE: the sigma, which is at bit #0, is now at qubit n_anc-1
+        # NOTE: the index, which is at bit #1 to #n_anc-1, is now at qubit #n_anc-2 to 0 (backwards)
+
+        # also the l here is confusing, I change it to mean the 2**l part in exmp
+        for l in range(0, n_anc-1):
+            qml.ControlledQubitUnitary(
+                #expm(2.0j * 2 ** l * H_shifted1),
+                fast_expm(2**l),
+                wires=[n_anc-l-2, n_anc-1] + system_wires,
+                control_values=[1, 0],  # sigma=0, anc_l=1
+            )
+            qml.ControlledQubitUnitary(
+                #expm(-2.0j * 2 ** l * H_shifted1),
+                fast_expm(-2 ** l),
+                wires=[n_anc-l-2, n_anc-1] + system_wires,
+                control_values=[1, 1],  # sigma=1, anc_l=1
+
+            )
+
+        qml.adjoint(qml.StatePrep)(weights, wires=range(n_anc))
+        return qml.state()
+
+    full_state = block_encoding()
+    reshaped = full_state.reshape((2 ** n_anc, 2 ** n))
+    system_state = reshaped[0, :]
+    be_state = system_state
+
+    be_state /= np.linalg.norm(be_state)
+    fidelity = np.abs(np.vdot(be_state, ground_state)) ** 2
+
+    # fig, ax = qml.draw_mpl(block_encoding)()
+    # fig.savefig(f"circuit_reduced_{max_N}.png", dpi=600)
+
+    return fidelity
+
+def cosine_reduced(H_shifted1, max_N):
+    n_anc = int(np.ceil(np.log2(max_N+1))) + 1
+    pad_len = 2 ** n_anc
+
+    alpha_padded = np.zeros(pad_len)
+
+    # NOTE: bit #0 is the sigma bit
+    # NOTE: bit #1 to bit #n_anc-1 is the index
+
+    # slower version but clearer
+    for i in range(max_N+1):
+        alpha_padded[2*i+0] = 2 ** (-2 * max_N) * math.comb(2 * max_N, max_N + i)
+        if i != 0:
+            alpha_padded[2*i+1] = 2 ** (-2 * max_N) * math.comb(2 * max_N, max_N + i)
+
+    # faster version
+    # alpha_padded[:2*(max_N+1)] = 1 / (2 * max_N+1)
+    # alpha_padded[1] = 0
+
+    weights = np.sqrt(alpha_padded / np.sum(alpha_padded))
+    ancilla_wires = list(range(n_anc))
+    system_wires = list(range(n_anc, n_anc + n))
+    dev = qml.device("default.qubit", wires=n + n_anc)
+
+    @qml.qnode(dev)
+    def block_encoding():
+        qml.StatePrep(weights, wires=range(n_anc))
+        # NOTE: the sigma, which is at bit #0, is now at qubit n_anc-1
+        # NOTE: the index, which is at bit #1 to #n_anc-1, is now at qubit #n_anc-2 to 0 (backwards)
+
+        # also the l here is confusing, I change it to mean the 2**l part in exmp
+        for l in range(0, n_anc-1):
+            qml.ControlledQubitUnitary(
+                #expm(2.0j * 2 ** l * H_shifted1),
+                fast_expm(2**l),
+                wires=[n_anc-l-2, n_anc-1] + system_wires,
+                control_values=[1, 0],  # sigma=0, anc_l=1
+            )
+            qml.ControlledQubitUnitary(
+                #expm(-2.0j * 2 ** l * H_shifted1),
+                fast_expm(-2 ** l),
+                wires=[n_anc-l-2, n_anc-1] + system_wires,
+                control_values=[1, 1],  # sigma=1, anc_l=1
+
+            )
+
+        qml.adjoint(qml.StatePrep)(weights, wires=range(n_anc))
+        return qml.state()
+    full_state = block_encoding()
+    reshaped = full_state.reshape((2 ** n_anc, 2 ** n))
+    system_state = reshaped[0, :]
+    be_state = system_state
+
+    be_state /= np.linalg.norm(be_state)
+    fidelity = np.abs(np.vdot(be_state, ground_state)) ** 2
+
+    # fig, ax = qml.draw_mpl(block_encoding)()
+    # fig.savefig(f"circuit_reduced_{max_N}.png", dpi=600)
+
+    return fidelity
+
+
+def cosine_dirichlet_reduced(H_shifted1, N1, N2):
+    n_anc = int(np.ceil(np.log2(N1+1))) + 1
+    n_anc_beta = int(np.ceil(np.log2(N2+1))) + 1
+    pad_len = 2 ** n_anc
+    beta_len = 2 ** n_anc_beta
+
+    alpha_padded = np.zeros(pad_len)
+    beta_padded = np.zeros(beta_len)
+
+    # NOTE: bit #0 is the sigma bit
+    # NOTE: bit #1 to bit #n_anc-1 is the index
+
+    # slower version but clearer
+    for i in range(N1+1):
+        alpha_padded[2*i+0] = 2 ** (-2 * N1) * math.comb(2 * N1, N1 + i)
+        if i != 0:
+            alpha_padded[2*i+1] = 2 ** (-2 * N1) * math.comb(2 * N1, N1 + i)
+
+    for i in range(N2+1):
+        beta_padded[2*i+0] = 1 / (2 * N2 + 1)
+        if i != 0:
+            beta_padded[2*i+1] = 1 / (2 * N2 + 1)
+
+    # faster version
+    # alpha_padded[:2*(max_N+1)] = 1 / (2 * max_N+1)
+    # alpha_padded[1] = 0
+
+    weights = np.sqrt(alpha_padded / np.sum(alpha_padded))
+    weights1 = np.sqrt(beta_padded / np.sum(beta_padded))
+
+    weights = np.kron(weights, weights1)
+    ancilla_wires = list(range(n_anc+n_anc_beta))
+    system_wires = list(range(n_anc+n_anc_beta, n_anc +n_anc_beta+ n))
+    dev = qml.device("default.qubit", wires=n + n_anc+n_anc_beta)
+
+    @qml.qnode(dev)
+    def block_encoding():
+        qml.StatePrep(weights, wires=range(n_anc+n_anc_beta))
+        # NOTE: the sigma, which is at bit #0, is now at qubit n_anc-1
+        # NOTE: the index, which is at bit #1 to #n_anc-1, is now at qubit #n_anc-2 to 0 (backwards)
+
+        # also the l here is confusing, I change it to mean the 2**l part in exmp
+        sigma_wire_alpha = n_anc - 1
+        for l in range(0, n_anc-1):
+            anc_l_wire_alpha = n_anc - l - 2
+            qml.ControlledQubitUnitary(
+                #expm(2.0j * 2 ** l * H_shifted1),
+                fast_expm(2**l),
+                wires=[anc_l_wire_alpha, sigma_wire_alpha] + system_wires,
+                control_values=[1, 0],  # sigma=0, anc_l=1
+            )
+            qml.ControlledQubitUnitary(
+                #expm(-2.0j * 2 ** l * H_shifted1),
+                fast_expm(-2 ** l),
+                wires=[anc_l_wire_alpha, sigma_wire_alpha] + system_wires,
+                control_values=[1, 1],  # sigma=1, anc_l=1
+
+            )
+        sigma_wire_beta = n_anc+n_anc_beta - 1
+        for l in range(0, n_anc_beta-1):
+            anc_l_wire_beta = n_anc+n_anc_beta - l - 2
+            qml.ControlledQubitUnitary(
+                #expm(2.0j * 2 ** l * H_shifted1),
+                fast_expm(2**l),
+                wires=[anc_l_wire_beta, sigma_wire_beta] + system_wires,
+                control_values=[1, 0],  # sigma=0, anc_l=1
+            )
+            qml.ControlledQubitUnitary(
+                #expm(-2.0j * 2 ** l * H_shifted1),
+                fast_expm(-2 ** l),
+                wires=[anc_l_wire_beta, sigma_wire_beta] + system_wires,
+                control_values=[1, 1],  # sigma=1, anc_l=1
+
+            )
+
+        qml.adjoint(qml.StatePrep)(weights, wires=range(n_anc+n_anc_beta))
+        return qml.state()
+
+    full_state = block_encoding()
+    reshaped = full_state.reshape((2 ** (n_anc+n_anc_beta), 2 ** n))
+    system_state = reshaped[0, :]
+    be_state = system_state
+
+    be_state /= np.linalg.norm(be_state)
+    fidelity = np.abs(np.vdot(be_state, ground_state)) ** 2
+
+    # fig, ax = qml.draw_mpl(block_encoding)()
+    # fig.savefig(f"circuit_reduced_{max_N}.png", dpi=600)
+
+    return fidelity
 
 # # 扫描 m
-max_N = 10
-# m_vals = list(range(1, max_N + 1))
-# fidelity_cosine, success_cosine = zip(*[fidelity_block_encoding(m) for m in list(range(1, max_N+1))])#list(range(1, max_N//2 + 1))])
-#
-# N_list = list(range(1, max_N + 1))
-# fidelity_be, success_be = zip(*[dirichlet_block_encoding(N) for N in N_list])
-#
-#
-# Fidelity for custom filter as N varies
+max_N = 100
+
 fidelity_list = []
-for N_iter in range(1, max_N + 1):
+for N_iter in range(1, max_N + 1,10):
     H_shifted = shift_and_normalize_H(H)
-    fH = custom_filter_matrix(H_shifted, N_iter)
+    fH = custom_filter_matrix1(H_shifted, N_iter)
     fidelity_custom = evaluate_fidelity(fH, init_state, H)
     fidelity_list.append(fidelity_custom)
 
-fidelity_cos_list = []
-for m_vals in range(1,max_N+1):
-    H_shifted = shift_and_normalize_H(H)
-    cos_filter = cosine_filter_matrix(H_shifted, m_vals)
-    fidelity_cos = evaluate_fidelity(cos_filter, init_state, H)
-    fidelity_cos_list.append(fidelity_cos)
+# fidelity_cos_reduced = []
+# for m_vals in range(1,max_N+1,10):
+#     H_shifted = shift_and_normalize_H(H)
+#     fidelity_cos = cosine_reduced(H_shifted, m_vals)
+#     fidelity_cos_reduced.append(fidelity_cos)
 
 fidelity_both_list = []
-for m_vals in range(1,max_N+1):
+
+fidelity_both_reduced = []
+for m_vals in range(2,max_N+1, 10):
     H_shifted = shift_and_normalize_H(H)
-    fH = cosine_dirichlet_numerical(H_shifted, m_vals, m_vals)
+    #fidelity_custom = cosine_dirichlet_reduced(H_shifted, int(m_vals/2), int(m_vals/2))
+    fidelity_custom = cosine_dirichlet_reduced(H_shifted, int(m_vals*0.1), int(m_vals*0.9))
+    fidelity_both_reduced.append(fidelity_custom)
+#
+# fidelity_reduced = []
+# H_shifted = shift_and_normalize_H(H)
+# for m_vals in range(1, max_N+1,10):
+#     fidelity = dirichlet_reduced(H_shifted, m_vals)
+#     fidelity_reduced.append(fidelity)
+fidelity_both_num = []
+for N_iter in range(2, max_N + 1, 10):
+    H_shifted = shift_and_normalize_H(H)
+    fH = cosine_dirichlet_numerical(H_shifted, int(N_iter*0.1), int(N_iter*0.9)) # second argument is cosine step
     fidelity_custom = evaluate_fidelity(fH, init_state, H)
-    fidelity_both_list.append(fidelity_custom)
+    fidelity_both_num.append(fidelity_custom)
+
+end_time = time.time()
+elapsed_time = end_time - start_time
+print(f"代码运行时间: {elapsed_time:.4f} 秒") # 保留四位小数
+
+plt.plot(range(1, max_N + 1,10), fidelity_list, marker='x', linestyle='-',label="Dirichlet kernel numerical")
+
+
+#plt.plot(list(range(1, max_N+1,10)), fidelity_cos_reduced, marker='o', ms=2,linestyle='-',label='Cosine reduced')
+
+
+plt.plot(list(range(2, max_N + 1, 10)), fidelity_both_reduced,marker='o', ms=2,linestyle='-',label='Dirichlet + Cosine reduced qc')
+plt.plot(list(range(2, max_N + 1, 10)), fidelity_both_num,marker='o', ms=2,linestyle='-',label='Dirichlet + Cosine numerical')
+#plt.plot(range(1, max_N+1,10), fidelity_reduced, marker='o', ms=2,linestyle='-',label='Dirichlet reduced qc')
 #
-
-# fidelity for cosine+dirichlet quantum circuit
-fidelity_both_qc = []
-for m_vals in range(1, max_N+1):
-    H_shifted = shift_and_normalize_H(H)
-    fidelity = cosine_dirichlet_qc(H_shifted, m_vals, m_vals)
-    fidelity_both_qc.append(fidelity)
-
-fidelity_reduced = []
-H_shifted = shift_and_normalize_H(H)
-for m_vals in range(1, max_N+1):
-    fidelity = dirichlet_reduced(H_shifted, m_vals)
-    fidelity_reduced.append(fidelity)
-#cosine_dirichlet_qc(H, 30, 30)
-# #plt.plot(N_list, fidelity_be, marker='s', label='Dirichlet kernel QC')
-#
-# #plt.plot(list(range(1, max_N + 1)), fidelity_cosine, marker='s', label='Cosine filter QC')
-#
-plt.plot(range(1, max_N + 1), fidelity_list, label="Dirichlet kernel numerical")
-
-plt.plot(list(range(1, max_N+1)), fidelity_cos_list, label='Cosine numerical')
-
-plt.plot(range(1, max_N+1), fidelity_both_list, label='Dirichlet + Cosine numerical')
-
-plt.plot(range(1, max_N+1), fidelity_both_qc, label='Dirichlet + Cosine QC')
-
-plt.plot(range(1, max_N+1), fidelity_reduced, label='Dirichlet reduced qc')
-#
-plt.xlabel("M")
-plt.xticks(list(range(0, max_N + 1)))
+plt.xlabel("Time step")
+plt.xticks(list(range(0, max_N + 1,10)))
 plt.ylabel("Fidelity with Ground State")
-#plt.title("Fidelity vs. m")
+
 plt.legend()
 # #plt.grid(True)
 # #plt.savefig("cosine compare with dirichlet n6.png")
-# #plt.show()
-#
-plt.figure(figsize=(8,4))
-plt.stem(eigvals, overlaps, basefmt=" ")
-plt.xlabel("Eigenvalue λₖ")
-plt.ylabel(r"$|\langle E_k | \psi_0\rangle|^2$")
-plt.title("Overlap of initial state with eigenvectors of H")
 plt.show()
+#
+# plt.figure(figsize=(8,4))
+# plt.stem(eigvals, overlaps, basefmt=" ")
+# plt.xlabel("Eigenvalue λₖ")
+# plt.ylabel(r"$|\langle E_k | \psi_0\rangle|^2$")
+# plt.title("Overlap of initial state with eigenvectors of H")
+# plt.show()
+
+#headers = ("fidelity_cos_reduced", "fidelity_both_qc", "fidelity_both_reduced", "fidelity_reduced")
+
+#all_lists = [fidelity_cos_reduced, fidelity_both_qc, fidelity_both_reduced, fidelity_reduced]
+# all_lists = [fidelity_cos_reduced, fidelity_both_reduced, fidelity_reduced]
+# file_name = "fidelity_data.txt"
+#
+# with open(file_name, "w", encoding="utf-8") as f:
+#
+#     f.write("\t".join(headers) + "\n")
+#
+#     for row in zip_longest(*all_lists, fillvalue=""):
+#
+#         line = "\t".join(map(str, row))
+#         f.write(line + "\n")
+#
+# print("data has been stored")
 
